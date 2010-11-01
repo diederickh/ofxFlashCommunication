@@ -1,0 +1,7 @@
+<install>
+	<name>ofxFlashCommunication</name>
+	<version>0.01</version>
+	<author>Diederick Huijbers</author>
+	<url>www.roxlu.com</url>
+	<description>Simple tiny lib for communication between Flash and openFrameworks (needs boost)</description>
+</install>
