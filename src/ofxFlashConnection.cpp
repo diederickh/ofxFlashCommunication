@@ -2,7 +2,6 @@
 #include "ofxFlashCommunication.h"
 #include <iostream>
 
-
 ofxFlashConnection::ofxFlashConnection(
 	flash_communcation_ptr pCommunication
 	,boost::asio::io_service& rIOService
@@ -14,7 +13,7 @@ ofxFlashConnection::ofxFlashConnection(
 }
 
 ofxFlashConnection::~ofxFlashConnection() {
-	std::cout << "~~~~ ofxFlashConnection()" << std::endl;
+	std::cout << "~~~~ ofxFlashConnection(), " << this << std::endl;
 }
 ofxFlashConnection::pointer ofxFlashConnection::create(
 	 flash_communcation_ptr pCommunication
@@ -27,26 +26,23 @@ ofxFlashConnection::pointer ofxFlashConnection::create(
 	return con;
 }
 
-
 boost::asio::ip::tcp::socket& ofxFlashConnection::socket() {
 	return socket_;
 }
 
 void ofxFlashConnection::start() {
 	boost::asio::async_read_until(
-		socket_, 
-		buf_
-		,"\n"
-		,boost::bind(
-			&ofxFlashConnection::handleRead
-			,shared_from_this()
-			,boost::asio::placeholders::error
-			,boost::asio::placeholders::bytes_transferred
-		)
+			socket_, 
+			buf_
+			,0x00
+			,boost::bind(
+				&ofxFlashConnection::handleRead
+				,shared_from_this()
+				,boost::asio::placeholders::error
+				,boost::asio::placeholders::bytes_transferred
+			)
 	);
-	
 }
-
 
 void ofxFlashConnection::handleRead(
 		const boost::system::error_code& rErr
@@ -58,18 +54,22 @@ void ofxFlashConnection::handleRead(
 		// read the received line.
 		std::istream response_stream(&buf_);
 		char* received_line = new char[nBytesTransferred];
-		response_stream.getline(received_line, nBytesTransferred,'\n');
+		response_stream.getline(received_line, nBytesTransferred,0x00);
 		std::cout << "<< " << received_line << std::endl;
 		std::string line = received_line;
 		delete received_line;
-		
-		// notify FlashCommunication we received some data.
-	
+			
+		if(line == "<policy-file-request/>") {
+			sendPolicyFile();
+			//flash_comm->removeConnection(shared_from_this()); // not sure...
+			return;
+		}
+
 		// continue reading new data.
 		boost::asio::async_read_until(
 			socket_, 
 			buf_
-			,"\n"
+			,0x00
 			,boost::bind(
 				&ofxFlashConnection::handleRead
 				,shared_from_this(),
@@ -82,6 +82,11 @@ void ofxFlashConnection::handleRead(
 		std::cout << "ofxFlashConnection::handleRead() error:" << rErr.message() << std::endl;
 		flash_comm->removeConnection(shared_from_this());
 	}
+}
+
+void ofxFlashConnection::sendPolicyFile() {
+	std::string policy_content = flash_comm->getPolicies();
+	write(policy_content);
 }
 
 void ofxFlashConnection::write(std::string sData) {

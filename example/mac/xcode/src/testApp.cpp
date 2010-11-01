@@ -3,6 +3,8 @@
 //--------------------------------------------------------------
 void testApp::setup(){
 	flash_comm = ofxFlashCommunication::create(1234);
+	flash_comm->addPolicy("*", "*"); // flash security policy (domain,port)
+	flash_comm->start();
 }
 
 //--------------------------------------------------------------
@@ -18,7 +20,7 @@ void testApp::draw(){
 //--------------------------------------------------------------
 void testApp::keyPressed(int key){
 	if(key == ' ') {
-		flash_comm->writeToClients("TO CLIENTS!");
+		flash_comm->writeToClients("data for clients");
 	}
 }
 

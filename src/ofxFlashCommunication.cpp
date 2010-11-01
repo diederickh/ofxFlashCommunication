@@ -22,10 +22,8 @@ void ofxFlashCommunication::start() {
 
 ofxFlashCommunication::pointer ofxFlashCommunication::create(int iPort) {
 	pointer com = boost::shared_ptr<ofxFlashCommunication>(new ofxFlashCommunication(iPort));
-	com->start();
 	return com;
 }
-	
 
 void ofxFlashCommunication::run() {
 	connection_ = ofxFlashConnection::create(shared_from_this(), io_service_);
@@ -40,6 +38,10 @@ void ofxFlashCommunication::run() {
 	);
 
 	io_service_.run();
+}
+
+void ofxFlashCommunication::addPolicy(std::string sDomain, std::string sPort) {
+	policies.push_back(ofxFlashPolicy(sDomain, sPort));
 }
 
 void ofxFlashCommunication::handleAccept(
@@ -83,7 +85,6 @@ void ofxFlashCommunication::removeConnection(flash_connection_ptr pConnection) {
 	}
 }
 
-
 void ofxFlashCommunication::writeToClients(std::string sMessage) {
 	boost::mutex::scoped_lock l(mutex_);
 	sMessage += "\n"; // add the line end.
@@ -94,5 +95,18 @@ void ofxFlashCommunication::writeToClients(std::string sMessage) {
 	}
 }
 
+std::string ofxFlashCommunication::getPolicies() {
+	std::vector<ofxFlashPolicy>::iterator it = policies.begin();
+	std::string policy = "<cross-domain-policy>";
+	while(it != policies.end()) {	
+		policy += (*it).getXML();
+		++it;
+	}
+	policy += "</cross-domain-policy>";
+	policy += '\0';
+	return policy;
+}
 
-
+bool ofxFlashCommunication::hasPolicies() {
+	return policies.size() > 0;
+}

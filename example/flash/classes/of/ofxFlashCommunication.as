@@ -1,4 +1,5 @@
 	package of {
+	import flash.system.Security;
 	import flash.net.Socket;
 	import flash.events.*;
 	import flash.errors.IOError;
@@ -14,6 +15,8 @@
 		public function ofxFlashCommunication(sHost:String, nPort:Number):void {
 			port_ = nPort;
 			host_ = sHost;
+			
+			Security.loadPolicyFile("xmlsocket://" +sHost +":" + nPort);
 			
 			socket_ = new Socket();
 			socket_.addEventListener(Event.CLOSE, onClose);
@@ -40,7 +43,7 @@
 		 * The received data is read as a string ending with a newline.
 		 * The sending format is:
 		 *
-		 * [string_message]\n
+		 * [string_message][0x00]
 		 *
 		 * This method dispatches a 
 		 */
@@ -61,7 +64,8 @@
 		 *							a string w/o line ending.
 		 */
 		public function send(sData:String):void {
-			socket_.writeUTFBytes(sData +"\n");
+			socket_.writeUTFBytes(sData);
+			socket_.writeByte(0x00);
 			flush();
 		}
 		

@@ -6,9 +6,10 @@ package {
 	public class ExampleApp extends flash.display.MovieClip {
 		private var comm:ofxFlashCommunication = null;
 		public function ExampleApp():void {
-			comm = new ofxFlashCommunication("localhost",1234);
-			comm.addEventListener(ofxFlashCommunicationEvent.NEW_DATA, onNewData);
 			trace("Example App");
+
+			comm = new ofxFlashCommunication("192.168.0.197",1234);
+			comm.addEventListener(ofxFlashCommunicationEvent.NEW_DATA, onNewData);
 			this['send_btn'].addEventListener(MouseEvent.CLICK, onSendClick);
 		}
 		
