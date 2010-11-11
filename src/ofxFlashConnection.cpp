@@ -112,5 +112,7 @@ void ofxFlashConnection::handleWrite(const boost::system::error_code& rErr) {
 	}
 	else {
 		std::cout << "ofxFlashConnection::handleWrite: Error: " << rErr.message() << std::endl;
+		// removed us when we couldn't write to the socket (maybe disconnected?)
+		flash_comm->removeConnection(shared_from_this());
 	}
 }
