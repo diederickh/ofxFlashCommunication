@@ -1,6 +1,7 @@
 #include "ofxFlashCommunication.h"
 #include <iostream>
 #include "ofxFlashConnection.h"
+#include "ofxFlashListener.h"
 
 ofxFlashCommunication::ofxFlashCommunication(int iPort) 
 	:port_(iPort)
@@ -107,6 +108,18 @@ std::string ofxFlashCommunication::getPolicies() {
 	return policy;
 }
 
+void ofxFlashCommunication::onDataReceived(std::string sData, flash_connection_ptr pConn) {
+	std::vector<ofxFlashListener*>::iterator it = listeners.begin();
+	while(it != listeners.end()) {
+		(*it)->onData(sData, pConn.get());
+		++it;
+	}
+}
+
 bool ofxFlashCommunication::hasPolicies() {
 	return policies.size() > 0;
+}
+
+void ofxFlashCommunication::addListener(ofxFlashListener* pListener) {
+	listeners.push_back(pListener);
 }

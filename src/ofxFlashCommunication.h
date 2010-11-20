@@ -34,6 +34,8 @@ struct ofxFlashPolicy {
 };
 
 
+class ofxFlashListener;
+
 class ofxFlashConnection;
 typedef boost::shared_ptr<ofxFlashConnection> flash_connection_ptr;
 	  
@@ -48,10 +50,14 @@ public:
 	std::string getPolicies();
 	bool hasPolicies();
 	void start();
+	void addListener(ofxFlashListener* pListener);
+
 private:
+	friend class ofxFlashConnection;
 	ofxFlashCommunication(int iPort);
+	void onDataReceived(std::string sData, flash_connection_ptr pConn);	
 	
-	
+		
 	void run();
 	void handleAccept(
 			flash_connection_ptr pConnection
@@ -68,5 +74,6 @@ private:
 	std::deque<flash_connection_ptr> connections;
 	flash_connection_ptr connection_;
 	std::vector<ofxFlashPolicy> policies;
+	std::vector<ofxFlashListener*> listeners;
 };
 #endif

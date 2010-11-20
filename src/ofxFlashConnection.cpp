@@ -64,7 +64,10 @@ void ofxFlashConnection::handleRead(
 			//flash_comm->removeConnection(shared_from_this()); // not sure...
 			return;
 		}
-
+		
+		// notify listeners.
+		flash_comm->onDataReceived(line, shared_from_this());
+		
 		// continue reading new data.
 		boost::asio::async_read_until(
 			socket_, 
