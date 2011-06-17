@@ -1,125 +1,88 @@
 #include "ofxFlashCommunication.h"
-#include <iostream>
-#include "ofxFlashConnection.h"
-#include "ofxFlashListener.h"
-
-ofxFlashCommunication::ofxFlashCommunication(int iPort) 
-	:port_(iPort)
-	,endpoint_(boost::asio::ip::tcp::v4(), iPort)
-	,acceptor_(io_service_, endpoint_)
+ofxFlashCommunication::ofxFlashCommunication() 
+:socket(NULL)
+,reactor(NULL)
+,address(NULL)
+,acceptor(NULL)
+,ip("")
+,port(0)
+,buffer(new char[BUFFER_SIZE])
 {
-	
+
 }
 
 ofxFlashCommunication::~ofxFlashCommunication() {
-	std::cout << "~~~~ ofxFlashCommunication" << std::endl;
+	delete socket;
+	delete reactor;
+	delete address;
+	delete acceptor;
+	delete reactor;
 }
 
-void ofxFlashCommunication::start() {
-	thread_ptr_ = boost::shared_ptr<boost::thread>(new boost::thread(
-		boost::bind(&ofxFlashCommunication::run, shared_from_this())
-	));
+void ofxFlashCommunication::setup(string sIP, int nPort) {
+	ip = sIP;
+	port = nPort;
 }
 
-ofxFlashCommunication::pointer ofxFlashCommunication::create(int iPort) {
-	pointer com = boost::shared_ptr<ofxFlashCommunication>(new ofxFlashCommunication(iPort));
-	return com;
+bool ofxFlashCommunication::start() {
+	if(socket != NULL) {
+		return false;
+	}
+	address = new SocketAddress(ip,port);
+	socket = new ServerSocket(*address);
+	reactor = new SocketReactor();
+	acceptor = new ofxFlashSocketAcceptor<ofxFlashConnection>(*socket, *reactor, this);
+	reactor->addEventHandler(*socket, NObserver<ofxFlashCommunication, ReadableNotification>(*this, &ofxFlashCommunication::onConnect));
+	thread.start(*reactor);
+	return true;
 }
 
-void ofxFlashCommunication::run() {
-	connection_ = ofxFlashConnection::create(shared_from_this(), io_service_);
-	acceptor_.async_accept(
-			connection_->socket()
-			,boost::bind(
-					&ofxFlashCommunication::handleAccept
-					,shared_from_this()
-					,connection_
-					,boost::asio::placeholders::error
-			)
-	);
-
-	io_service_.run();
-}
-
-void ofxFlashCommunication::addPolicy(std::string sDomain, std::string sPort) {
+void ofxFlashCommunication::addPolicy(string sDomain, string sPort) {
 	policies.push_back(ofxFlashPolicy(sDomain, sPort));
 }
 
-void ofxFlashCommunication::handleAccept(
-	 flash_connection_ptr pConnection
-	,const boost::system::error_code& rErr
-)
-{
-	if(!rErr) {
-		
-		connection_->start();
-		connections.push_back(connection_);
-		connection_.reset(new ofxFlashConnection(
-			shared_from_this()
-			,io_service_
-		));
-
-		acceptor_.async_accept(
-				connection_->socket()
-				,boost::bind(
-						&ofxFlashCommunication::handleAccept
-						,shared_from_this()
-						,connection_
-						,boost::asio::placeholders::error
-				)
-		);
-	}
-	else {
-		std::cout << rErr.message() << std::endl;
-	}
+// @todo remove this.
+void ofxFlashCommunication::onConnect(const AutoPtr<ReadableNotification>& pNotif) {
 }
 
-void ofxFlashCommunication::removeConnection(flash_connection_ptr pConnection) {
-	std::deque<flash_connection_ptr>::iterator it = connections.begin();
-	while(it != connections.end()) {
-		if((*it) == pConnection) {
-			(*it)->stop();
-			it = connections.erase(it);
-		}
-		else
-			++it;
-	}
-}
-
-void ofxFlashCommunication::writeToClients(std::string sMessage) {
-	boost::mutex::scoped_lock l(mutex_);
-	sMessage += "\n"; // add the line end.
-	std::deque<flash_connection_ptr>::iterator it = connections.begin();
-	while(it != connections.end()) {
-		(*it)->write(sMessage);
-		++it;
-	}
-}
-
-std::string ofxFlashCommunication::getPolicies() {
+string ofxFlashCommunication::getPoliciesXML() {
 	std::vector<ofxFlashPolicy>::iterator it = policies.begin();
-	std::string policy = "<cross-domain-policy>";
+	string policy = "<?xml version=\"1.0\"?>" \
+					"<!DOCTYPE cross-domain-policy SYSTEM \"http://www.adobe.com/xml/dtds/cross-domain-policy.dtd\">" \
+					"<cross-domain-policy>";
 	while(it != policies.end()) {	
 		policy += (*it).getXML();
 		++it;
 	}
 	policy += "</cross-domain-policy>";
-	policy += '\0';
+	/*
+	policy.push_back(0x00);
+	policy.push_back(0x0D);
+	policy.push_back(0x0A);
+	*/
+	//policy += '\0'; 
 	return policy;
 }
 
-void ofxFlashCommunication::onDataReceived(std::string sData, flash_connection_ptr pConn) {
-	std::vector<ofxFlashListener*>::iterator it = listeners.begin();
-	while(it != listeners.end()) {
-		(*it)->onData(sData, pConn.get());
+void ofxFlashCommunication::addClient(ofxFlashConnection* pClient) {
+	clients.push_back(pClient);
+}
+
+void ofxFlashCommunication::removeClient(ofxFlashConnection* pClient) {
+	vector<ofxFlashConnection*>::iterator it = clients.begin();
+	while(it != clients.end()) {
+		if((*it) == pClient) {
+			clients.erase(it);
+			break;
+		}
 		++it;
 	}
 }
 
-bool ofxFlashCommunication::hasPolicies() {
-	return policies.size() > 0;
-}
-
-void ofxFlashCommunication::addListener(ofxFlashListener* pListener) {
-	listeners.push_back(pListener);
+void ofxFlashCommunication::send(string sData) {
+	vector<ofxFlashConnection*>::iterator it = clients.begin();
+	while(it != clients.end()) {
+		(*it)->write(sData);
+		++it;
+	}
 }

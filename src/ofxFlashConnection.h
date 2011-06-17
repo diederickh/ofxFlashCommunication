@@ -1,49 +1,50 @@
-#ifndef OFXFLASHCONNECTIONH
-#define OFXFLASHCONNECTIONH
+#pragma once
 
-#undef check
-#include <boost/shared_ptr.hpp>
-#include <boost/asio.hpp>
-#include <boost/asio.hpp>
-#include <boost/enable_shared_from_this.hpp>
+#include "Poco/Net/SocketReactor.h"
+#include "Poco/Net/SocketAcceptor.h"
+#include "Poco/Net/SocketNotification.h"
+#include "Poco/Net/StreamSocket.h"
+#include "Poco/Net/ServerSocket.h"
+#include "Poco/NObserver.h"
+#include "Poco/Exception.h"
+#include "Poco/Thread.h"
+#include "Poco/Util/ServerApplication.h"
+#include "Poco/Util/Option.h"
+#include "Poco/Util/OptionSet.h"
+#include "Poco/Util/HelpFormatter.h"
+#include "Poco/AutoPtr.h"
+#include <iostream>
 
-#include <string>
 
+using Poco::Net::SocketReactor;
+using Poco::Net::SocketAcceptor;
+using Poco::Net::ReadableNotification;
+using Poco::Net::ShutdownNotification;
+using Poco::Net::ServerSocket;
+using Poco::Net::StreamSocket;
+using Poco::NObserver;
+using Poco::AutoPtr;
+using Poco::Thread;
+
+using namespace std;
 class ofxFlashCommunication;
-typedef boost::shared_ptr<ofxFlashCommunication> flash_communcation_ptr;
-
-
-class ofxFlashConnection : public boost::enable_shared_from_this<ofxFlashConnection> {
+class ofxFlashConnection {
 public:
+	ofxFlashConnection(StreamSocket rSocket, SocketReactor& rReactor);
 	~ofxFlashConnection();
-	
-	typedef boost::shared_ptr<ofxFlashConnection> pointer;
-	
-	static pointer create(
-		 flash_communcation_ptr pCommunication
-		,boost::asio::io_service& rIOService
-	);
-	
-	void start();
-	
-	boost::asio::ip::tcp::socket& socket();
-	
-	void write(std::string);
-	
-	void stop();
-	
-	ofxFlashConnection(
-		 flash_communcation_ptr pComm
-		,boost::asio::io_service& rIOService
-	);
-	
+	void setup(ofxFlashCommunication* pCom);
+	int write(string sData);
+	void onReadable(const AutoPtr<ReadableNotification>& pNotif);
+	void onShutdown(const AutoPtr<ShutdownNotification>& pNotif);
 private:
-	void sendPolicyFile();
-	void handleRead(const boost::system::error_code& rErr, size_t nBytesTransferred);
-	void handleWrite(const boost::system::error_code& rErr);
-	boost::asio::ip::tcp::socket socket_;
-	boost::asio::streambuf buf_;
-	flash_communcation_ptr flash_comm;
+	void parseBuffer();
+	ofxFlashCommunication* com;
+	StreamSocket socket;
+	SocketReactor& reactor;
+	enum{
+		BUFFER_SIZE = 1024
+	};
+	char* raw;
+	vector<char> buffer;
 	
 };
-#endif

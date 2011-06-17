@@ -1,79 +1,109 @@
-#ifndef OFXFLASHCOMMUNICATIONH
-#define OFXFLASHCOMMUNICATIONH
+#pragma once
 
-#undef check
-#include <boost/asio.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/thread.hpp>
-#include <boost/enable_shared_from_this.hpp>
+// Include all the lovely Poco stuff
+// ---------------------------------
+#include "Poco/Thread.h"
+#include "Poco/Mutex.h"
+#include "Poco/Runnable.h"
+#include "Poco/Net/ServerSocket.h"
+#include "Poco/Net/StreamSocket.h"
+#include "Poco/Net/SocketAddress.h"
+#include "Poco/Net/SocketReactor.h"
+#include "Poco/Net/SocketAcceptor.h"
+#include "Poco/NObserver.h"
+#include "Poco/AutoPtr.h"
+
 #include <string>
-#include <deque>
-
 #include <vector>
 
+#include "ofxFlashConnection.h"
+
+using Poco::Net::ReadableNotification;
+using Poco::NObserver;
+using Poco::Thread;
+using Poco::Mutex;
+using Poco::Runnable;
+using Poco::Net::ServerSocket;
+using Poco::Net::StreamSocket;
+using Poco::Net::SocketAddress;
+using Poco::Net::SocketReactor;
+using Poco::Net::SocketAcceptor;
+
+using namespace std;
+
+// Container for flash policies
+// ----------------------------
 struct ofxFlashPolicy {
-	ofxFlashPolicy(
-		 std::string sDomain
-		,std::string sPort
-	)
-		:domain(sDomain)
-		,port(sPort)
+	ofxFlashPolicy(string sDomain,string sPort)
+	:domain(sDomain)
+	,port(sPort)
 	{
 	}
-
+						//		+"secure=\"false\" " 
 	std::string getXML() {
-		std::string xml = "<allow-access-from " \
+			std::string xml = "<allow-access-from " \
 								"domain=\"" +domain +"\" " \
-								+"secure=\"false\" " \
-								+"to-ports=\"" +port +"\" />";
+								"secure=\"false\" " \
+								"to-ports=\"" +port +"\" />";
 		return xml;
 	}
-	
-	std::string domain;
-	std::string port;
+	string domain;
+	string port;
 };
 
+// Customer factory which creates connection instances
+// ----------------------------------------------------
+template<typename T>
+class ofxFlashSocketAcceptor;
 
-class ofxFlashListener;
-
-class ofxFlashConnection;
-typedef boost::shared_ptr<ofxFlashConnection> flash_connection_ptr;
-	  
-class ofxFlashCommunication : public boost::enable_shared_from_this<ofxFlashCommunication> {
+// The server to which flash connects
+// ----------------------------------
+class ofxFlashCommunication {
 public:
-	typedef boost::shared_ptr<ofxFlashCommunication> pointer;
-	static pointer create(int iPort);
+	ofxFlashCommunication();
 	~ofxFlashCommunication();
-	void writeToClients(std::string sMessage);
-	void removeConnection(flash_connection_ptr pConnection);
-	void addPolicy(std::string sDomain, std::string sPort);
-	std::string getPolicies();
-	bool hasPolicies();
-	void start();
-	void addListener(ofxFlashListener* pListener);
-
+	void addPolicy(string sDomain, string sPort);
+	void setup(string sIP, int nPort);
+	bool start();
+	void send(string sData);
+	string getPoliciesXML();
+	void addClient(ofxFlashConnection* pClient);
+	void removeClient(ofxFlashConnection* pClient);
 private:
-	friend class ofxFlashConnection;
-	ofxFlashCommunication(int iPort);
-	void onDataReceived(std::string sData, flash_connection_ptr pConn);	
-	
-		
-	void run();
-	void handleAccept(
-			flash_connection_ptr pConnection
-			,const boost::system::error_code& rErr
-	);
+	void onConnect(const AutoPtr<ReadableNotification>& pNotif);
 
-	int port_;
+	int				port;
+	string			ip;
+	Thread			thread;
+	ServerSocket*	socket;
+	SocketReactor*	reactor;
+	SocketAddress*	address;
 	
-	boost::shared_ptr<boost::thread> thread_ptr_;
-	boost::asio::io_service io_service_;
-	boost::asio::ip::tcp::endpoint endpoint_;
-	boost::asio::ip::tcp::acceptor acceptor_;
-	boost::mutex mutex_;
-	std::deque<flash_connection_ptr> connections;
-	flash_connection_ptr connection_;
-	std::vector<ofxFlashPolicy> policies;
-	std::vector<ofxFlashListener*> listeners;
+	ofxFlashSocketAcceptor<ofxFlashConnection>* acceptor;
+	vector<ofxFlashPolicy> policies;
+	vector<ofxFlashConnection*> clients;
+	enum{
+		BUFFER_SIZE = 1024
+	};
+	char* buffer;
 };
-#endif
+
+template<typename T>
+class ofxFlashSocketAcceptor : public SocketAcceptor<T> {
+public:
+	ofxFlashSocketAcceptor(ServerSocket& socket, SocketReactor& reactor, ofxFlashCommunication* pCom)
+		:SocketAcceptor<T>(socket,reactor)
+		,com(pCom)
+	{
+	}
+	ofxFlashCommunication* com;
+protected:
+	virtual T* createServiceHandler(StreamSocket& sock) {
+		T* obj = new T(sock, *(SocketAcceptor<T>::reactor()));
+		obj->setup(com);
+		com->addClient(obj);
+		return obj;
+	}
+};
+
+
