@@ -1,0 +1,15 @@
+ofxFlashCommunication
+=====================
+Allows you to create a flash server to which you can connect
+using a Flash socket. Can handle large amounts of clients (using 
+Poco::Net::* for scalable networking.
+
+Install & setup
+===============
+- Just drag and drop the source files into your project
+- Add ofxFlashCommuncation.h to your testApp.h
+- Create a member "ofxFlashCommunication flash" in testApp
+- in testApp::setup(), call: flash.setup(...); flash.addPolicy(...); and flash.start();
+- to receive messages from flash use: flash.hasMessage(), flash.getNextMessage()
+- to send messages to flash use: flash.send("some message as string")
+
