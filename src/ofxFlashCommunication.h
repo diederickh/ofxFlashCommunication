@@ -62,30 +62,32 @@ class ofxFlashCommunication {
 public:
 	ofxFlashCommunication();
 	~ofxFlashCommunication();
-	void addPolicy(string sDomain, string sPort);
-	void setup(string sIP, int nPort);
-	bool start();
-	void send(string sData);
-	string getPoliciesXML();
-	void addClient(ofxFlashConnection* pClient);
-	void removeClient(ofxFlashConnection* pClient);
+	void 	addPolicy(string sDomain, string sPort);
+	void 	setup(string sIP, int nPort);
+	bool 	start();
+	void 	send(string sData);
+	string 	getPoliciesXML();
+	void 	addClient(ofxFlashConnection* pClient);
+	void 	removeClient(ofxFlashConnection* pClient);
+	void 	addMessage(string sMessage);
+	bool	hasMessage();
+	string	getNextMessage();
 private:
-	void onConnect(const AutoPtr<ReadableNotification>& pNotif);
-
+	char* 			buffer;
 	int				port;
 	string			ip;
 	Thread			thread;
+	Mutex 			mutex;
 	ServerSocket*	socket;
 	SocketReactor*	reactor;
 	SocketAddress*	address;
 	
 	ofxFlashSocketAcceptor<ofxFlashConnection>* acceptor;
-	vector<ofxFlashPolicy> policies;
-	vector<ofxFlashConnection*> clients;
-	enum{
-		BUFFER_SIZE = 1024
-	};
-	char* buffer;
+	vector<ofxFlashPolicy>						policies;
+	vector<ofxFlashConnection*> 				clients;
+	vector<string> 								messages;
+	vector<string>::iterator					messages_it;
+	enum { BUFFER_SIZE = 1024 };
 };
 
 template<typename T>
@@ -96,6 +98,7 @@ public:
 		,com(pCom)
 	{
 	}
+	
 	ofxFlashCommunication* com;
 protected:
 	virtual T* createServiceHandler(StreamSocket& sock) {

@@ -2,7 +2,6 @@
 
 #include "ofMain.h"
 #include "ofxFlashCommunication.h"
-
 class testApp : public ofBaseApp{
 
 	public:

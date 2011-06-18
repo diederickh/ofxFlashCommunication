@@ -15,12 +15,18 @@ ofxFlashConnection::ofxFlashConnection(
 }
 
 ofxFlashConnection::~ofxFlashConnection() {
+	reactor.removeEventHandler(socket, NObserver<ofxFlashConnection, ReadableNotification>(*this, &ofxFlashConnection::onReadable));
+	reactor.removeEventHandler(socket, NObserver<ofxFlashConnection, ShutdownNotification>(*this, &ofxFlashConnection::onShutdown));
+	delete [] raw;
 	com->removeClient(this);
+	com = NULL;
+	
 }
 
 void ofxFlashConnection::setup(ofxFlashCommunication* pCom) {
 	com = pCom;
 }
+
 void ofxFlashConnection::onReadable(const AutoPtr<ReadableNotification>& pNotif) {
 	int n = socket.receiveBytes(raw, BUFFER_SIZE);
 	if(n > 0) {
@@ -29,6 +35,10 @@ void ofxFlashConnection::onReadable(const AutoPtr<ReadableNotification>& pNotif)
 		}
 		parseBuffer();
 	}
+	else {
+		delete this;
+	}
+	
 }
 
 void ofxFlashConnection::parseBuffer() {
@@ -43,8 +53,8 @@ void ofxFlashConnection::parseBuffer() {
 				string policies = com->getPoliciesXML();
 				write(policies);
 			}
-			else {
-				//parseCommand(cmd, line);
+			else if(line.size() > 1) {
+				com->addMessage(line);
 			}
 			it = buffer.erase(buffer.begin(), it);
 		}
@@ -56,17 +66,18 @@ void ofxFlashConnection::parseBuffer() {
 }
 
 void ofxFlashConnection::onShutdown(const AutoPtr<ShutdownNotification>& pNotif) {
-	cout << "yep!" << endl;
+	delete this;
 }
 
 int ofxFlashConnection::write(string sData) {
-	//sData.push_back('\0');	
 	int n = sData.size();
-	int done = 0;
+	int done = socket.sendBytes(sData.c_str(),sData.size());
+	// untested (cannot find a way to get inside this loop on Mac)
+	// then number of bytes actually sent can be less than requested
+	// as stated in the documentation. 
+	// http://pocoproject.org/docs/
 	while(n < done) {
 		done+= socket.sendBytes(sData.c_str(),sData.size());
 	}
 	return done;
-	
-	
 }

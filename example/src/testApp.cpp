@@ -2,15 +2,21 @@
 
 //--------------------------------------------------------------
 void testApp::setup(){
-	flash.addPolicy("*","*");
-	flash.setup("192.168.0.107",1234);
+	ofSetFrameRate(60);
+	ofSetVerticalSync(true);
+	ofBackground(33,33,33);
+	flash.setup("192.168.0.200",1234);
+	flash.addPolicy("*","*"); 
 	flash.start();
-
-
 }
 
 //--------------------------------------------------------------
 void testApp::update(){
+	ofSetWindowTitle(ofToString(ofGetFrameRate()));
+	while(flash.hasMessage()) {
+		string message = flash.getNextMessage();
+		cout << "received: '" << message << "'" << endl;
+	}
 }
 
 //--------------------------------------------------------------
@@ -25,10 +31,7 @@ void testApp::keyPressed(int key){
 
 //--------------------------------------------------------------
 void testApp::keyReleased(int key){
-	if(key == ' ') {
-		cout << "send data!" << endl;
-		flash.send("TESTERDETEST");
-	}
+
 }
 
 //--------------------------------------------------------------
@@ -43,7 +46,7 @@ void testApp::mouseDragged(int x, int y, int button){
 
 //--------------------------------------------------------------
 void testApp::mousePressed(int x, int y, int button){
-
+	flash.send("this message is sent from openFrameworks");
 }
 
 //--------------------------------------------------------------
