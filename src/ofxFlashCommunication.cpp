@@ -73,6 +73,7 @@ void ofxFlashCommunication::removeClient(ofxFlashConnection* pClient) {
 
 void ofxFlashCommunication::send(string sData) {
 	sData.push_back('\0');
+	//vector<ofxFlashConnection*>::iterator it = clients.begin();
 	vector<ofxFlashConnection*>::iterator it = clients.begin();
 	while(it != clients.end()) {
 		(*it)->write(sData);
