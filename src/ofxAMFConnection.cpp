@@ -9,6 +9,9 @@ ofxAMFConnection::ofxAMFConnection(
 :socket(rSocket)
 ,reactor(rReactor)
 ,amf_server(NULL)
+,content_length(0)
+,num_content_bytes_received(0)
+,state(RETRIEVE_HEADER)
 {
 	buffer.setup();
 	reactor.addEventHandler(socket, NObserver<ofxAMFConnection, ReadableNotification>(*this, &ofxAMFConnection::onReadable));
@@ -36,89 +39,89 @@ void ofxAMFConnection::onReadable(const AutoPtr<ReadableNotification>& pNotif) {
 	// need to parse the HTTP header better. We need to make sure that we have
 	// read until the "\r\n\r\n" which means we have read the complete header,
 	// then we need to check if we have received the total "Content-length"
-	
+	cout << "got:" << n << " bytes" << endl;
 	if(n > 0) {
+		// add the new bytes to the buffer.
 		buffer.storeBytes(tmp, n);
-		string line;
-		int read_until = buffer.consumeUntil("\r\n\r\n", line);
-		cout << "we have read until:" << read_until << ", and consumed:" << buffer.consumed <<endl;
-		cout << "------------------------------" << endl;
-		buffer.printHex(read_until, n);
-		cout << "------------------------------" << endl;
-		if(read_until) {
-			
-			// read version
-			Dictionary version;
-			amf3.readUint16(buffer,version);
-			
-			// read number of headers.
-			Dictionary header_count;
-			amf3.readUint16(buffer,header_count);
-			cout << "header count:" << (string)header_count << endl;
-			
-			// process headers
-			for(int i = 0; i < (uint16_t)header_count; ++i) {
-				cout << "TODO processing header:" << i << endl;
-				
-			}
-			
-			// read number of messages
-			Dictionary message_count;
-			amf3.readUint16(buffer,message_count);
-			cout << "message count:" << (string)message_count << endl;
-					
-			// process messages			
-			for(int i = 0; i < (uint16_t)message_count; ++i) {
-				
-				// get object to be called, ie. YourClass.SomeMethod
-				Dictionary target_uri;
-				amf3.readUTF(buffer, target_uri);
-				cout << "target uri:" << (string)target_uri << endl;
-				
-				// aka: /1, /2, /3 (unique identifier)
-				Dictionary response_uri;
-				amf3.readUTF(buffer, response_uri);
-				cout << "response uri:" << (string)response_uri << endl;
-				
-				// get message body length
-				/*
-				Dictionary message_body_length;
-				amf3.readUint32(buffer, message_body_length);
-				cout << "message body length:" << (string)message_body_length << endl;
-				*/
-				buffer.ignore(4);
-				
-				// value type
-				uint8_t marker;
-				buffer.consumeByte(marker);
-				printf("marker: %02X\n", marker);
-				
-				if(marker == 0x0a) {
-					Dictionary num_elements;
-					amf3.readUint32(buffer, num_elements);
-					cout << "number of elements in array: " << (string)num_elements << endl;
-					for(uint32_t i = 0; i < (uint32_t)num_elements; ++i) {
-						uint8_t type;
-						buffer.consumeByte(type);
-
-						// string
-						if(type == 0x02) {
-							Dictionary str;
-							amf3.readUTF(buffer, str);
-							cout << "got string: '" << (string)str << "'"  << endl;
-						}
-					}
+	
+		// step 1: read http headers	
+		if(state == RETRIEVE_HEADER) {
+			string raw_headers;
+			int until = buffer.consumeUntil("\r\n\r\n", raw_headers);
+			if(until) {
+				Dictionary clean_headers;
+				if(parseHTTPHeaders(raw_headers, clean_headers)) {
+					content_length = clean_headers["content-length"].asUInt32();
 				}
-
-				
+				state = RETRIEVE_CONTENT;
 			}
-			
+		}
+		
+		if(state == RETRIEVE_CONTENT) {
+			// when we retrieved all data, deserialize it.
+			num_content_bytes_received += n;
+			if(num_content_bytes_received >= content_length) {
+				amf3.deserialize(buffer);
+			}
+			else {
+				cout << "no:" << num_content_bytes_received << endl;
+			}
 		}
 	}
 	else {
 	
 		delete this;
 	}
+}
+
+
+
+
+bool ofxAMFConnection::parseHTTPHeaders(string& headers, Dictionary& result) {
+	cout << "Parse http headers" << endl;
+	cout << "Parsing raw headers:" << endl;
+	cout << "------------------------------------------------" <<endl;
+	cout << headers << endl;
+	cout << "------------------------------------------------" <<endl;
+	
+	StringTokenizer header_tokens(
+		 headers
+		,"\r\n"
+		,StringTokenizer::TOK_TRIM | StringTokenizer::TOK_IGNORE_EMPTY
+	);
+	
+	size_t num_tokens = header_tokens.count();
+	for(int i = 0; i < num_tokens; ++i) {
+	
+		StringTokenizer spec_token(
+			header_tokens[i]
+			,":"
+			,StringTokenizer::TOK_TRIM | StringTokenizer::TOK_IGNORE_EMPTY
+		);
+		
+		// 0 = GET or POST
+		if(i > 0 && spec_token.count() < 2) {
+			printf( "parse http header error: spec count not 2 for: %s\n"
+					,header_tokens[i].c_str()
+			);
+			return false;
+		}
+		if(i == 0) {
+			// @todo add request type (post or get)
+		}
+		// for
+		else if(i > 0) {
+			string spec_val = "";
+			for(int j = 1; j < spec_token.count(); ++j) {
+				spec_val += spec_token[j] +((j < spec_token.count()-1) ? ":" : "");
+			}
+			string spec_name = spec_token[0];
+			toLowerInPlace(spec_name);
+			cout << spec_name << " = " << spec_val<< endl;
+			result[spec_name] = spec_val;
+		}
+	}
+	return true;
 }
 
 void ofxAMFConnection::parseBuffer() {
