@@ -59,7 +59,8 @@ void ofxAMFSerializer::writeUint8(IOBuffer& buffer, uint8_t value) {
 }
 
 // @todo pass Dictionary as input
-bool ofxAMFSerializer::deserialize(IOBuffer& buffer) {
+ofxAMFRequest ofxAMFSerializer::deserialize(IOBuffer& buffer) {
+	ofxAMFRequest request;
 	buffer.printHex();
 	uint16_t version = buffer.consumeLittleEndianUInt16();
 	uint16_t header_count = buffer.consumeLittleEndianUInt16();
@@ -107,7 +108,7 @@ bool ofxAMFSerializer::deserialize(IOBuffer& buffer) {
 		output.setup();
 		serialize(output, result);
 	}
-	return true;
+	return request;
 }
 
 

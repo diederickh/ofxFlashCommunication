@@ -32,10 +32,10 @@ using Poco::Thread;
 using Poco::StringTokenizer;
 using Poco::toLowerInPlace;
 
+
 #include "Dictionary.h"
 #include "ofxAMFSerializer.h"
-
-
+	
 using namespace std;
 class ofxAMFServer;
 class ofxAMFConnection {
@@ -62,4 +62,5 @@ private:
 	int state;
 	uint32_t content_length;
 	uint32_t num_content_bytes_received;
+
 };
