@@ -35,6 +35,13 @@ void ofxAMFConnection::setup(ofxAMFServer* amfServer) {
 void ofxAMFConnection::onReadable(const AutoPtr<ReadableNotification>& pNotif) {	
 	uint8_t tmp[1024];
 	int n = socket.receiveBytes(tmp, 1024);
+	cout << "\n------------ received ---------------\n";
+	for(int i = 0; i < n; ++i) {
+		cout << (char)tmp[i];
+	}
+	cout << "\n-------------------------------------";
+	cout << "\n\n\n";
+	
 	// @todo - this is not working nicely at the moment, because we 
 	// need to parse the HTTP header better. We need to make sure that we have
 	// read until the "\r\n\r\n" which means we have read the complete header,
@@ -61,6 +68,11 @@ void ofxAMFConnection::onReadable(const AutoPtr<ReadableNotification>& pNotif) {
 			// when we retrieved all data, deserialize it.
 			num_content_bytes_received += n;
 			if(num_content_bytes_received >= content_length) {
+				// reset state.
+				state = RETRIEVE_HEADER; 
+				num_content_bytes_received = 0;
+				
+				// parse packet
 				ofxAMFPacket request = amf3.deserialize(buffer);
 				
 				// @todo notify for new request.

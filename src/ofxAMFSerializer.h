@@ -44,10 +44,11 @@ public:
 	void writeAMF3Type(IOBuffer& buffer, Dictionary& source);
 	void writeAMF3Array(IOBuffer& buffer, Dictionary& source);
 	void writeAMF3Object(IOBuffer& buffer, Dictionary& source);
-	
+	void writeAMF3String(IOBuffer& buffer, string& source);
+		
 	void writeNull(IOBuffer& buffer, Dictionary& source);
 	void writeArray(IOBuffer& buffer, Dictionary& source);
-	void writeString(IOBuffer& buffer, Dictionary& source);
+
 	void writeUint8(IOBuffer& buffer, uint8_t value);
 	
 	void writeUTF(IOBuffer& buffer, string value);

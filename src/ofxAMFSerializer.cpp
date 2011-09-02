@@ -33,10 +33,15 @@ IOBuffer ofxAMFSerializer::serialize(ofxAMFPacket& packet) {
 		writeUTF(buffer, message->getTargetURI());
 		writeUTF(buffer, message->getResponseURI());
 		
+		// @TODO ALL DATA IS STORED IN A AMF0 ARRAY OF SIZE 1, THEN
+		// A AMF3 ARRAY OF ARBITRARY SIZE, NEED TO FIGURE OUT WHY WE ALWAYS
+		// GET A AMF0 ARRAY.
+		
 		// write the data
 		Dictionary data = message->getData();
+		Dictionary first_data = data[(uint32_t)0];
 		string js;
-		data.serializeToJSON(js);
+		first_data.serializeToJSON(js);
 		cout << "----------- packetize ----------" << endl;
 		cout << js << endl;
 		cout << "--------------------------------" << endl;
@@ -50,10 +55,14 @@ IOBuffer ofxAMFSerializer::serialize(ofxAMFPacket& packet) {
 
 			// we write the contents to a tmp buffer, so we can get the size
 			// of it which we are supposed to add before the actually data.
+			writeAMF3Type(tmp_buffer, first_data);
 			
-			writeAMF3Type(tmp_buffer, data);
-			
+			cout << "\n----------------- tmp buffer hex -------------------\n";
+			tmp_buffer.printHex();
+			cout << "\n----------------------------------------------------\n\n";
 			buffer.storeBuffer(tmp_buffer);
+			
+			
 		}
 		else {
 			printf("store amf0\n");
@@ -91,10 +100,25 @@ IOBuffer ofxAMFSerializer::serialize(ofxAMFPacket& packet) {
 */
 
 void ofxAMFSerializer::writeAMF3Object(IOBuffer& buffer, Dictionary& source) {
+	printf("write amf3 object\n");	
+	buffer.storeByte(AMF3_OBJECT);
 	
+	Dictionary s = source;
+	uint32_t dense_size = s.getMapDenseSize();
+	printf("dense size of array: %u\n", dense_size);
+	
+	// @todo figure out why this is done in the crtmp server.
+	for(uint32_t i = 0; i < dense_size; ++i) {
+		s.removeAt(i);	
+	}
+	
+	writeU29(buffer, (dense_size << 1) | 0x01);
+
+	//writeU29(buffer, 0x0b);	
 }
 
 void ofxAMFSerializer::writeAMF3Type(IOBuffer& buffer, Dictionary& input) {
+	printf("amf3 type: %02X\n",input.type);
 	switch(input.type) {
 		case D_NULL: {
 
@@ -103,7 +127,7 @@ void ofxAMFSerializer::writeAMF3Type(IOBuffer& buffer, Dictionary& input) {
 		
 		case D_MAP: {
 			if(input.isArray()) {
-				writeAMF3Object(buffer, input);
+				writeAMF3Array(buffer, input);
 			}
 			else {
 				printf("@todo write amf3: write a object map\n");
@@ -112,7 +136,8 @@ void ofxAMFSerializer::writeAMF3Type(IOBuffer& buffer, Dictionary& input) {
 		}
 		
 		case D_STRING: {
-
+			string str = (string)input;
+			writeAMF3String(buffer, str);
 			break;
 		}
 		
@@ -144,18 +169,49 @@ void ofxAMFSerializer::writeAMF3Type(IOBuffer& buffer, Dictionary& input) {
 }
 
 void ofxAMFSerializer::writeAMF3Array(IOBuffer& buffer, Dictionary& source) {
+	// to write a AMF3 array we follow this approach: (see amf3 spec page 8/9
+	// ----------------------------------------------------
+	// - 1. first write AMF3 array-value byte (0x09)
+	// - 2. then we store the dense size portion (and reference) in a U29
+	// - 3. then a name=value pair array (for which we remove the dense portion 
+	// 		of 'source'
+	// - 4. then an empty string to indicate end of name=value pairs
+	// - 5. then we store the dense portion (see this as the indexed array part)
+
+
+	// 1. amf3 array
 	buffer.storeByte(AMF3_ARRAY); 
 	
+	// 2. dense size portion.
 	Dictionary s = source;
 	uint32_t dense_size = s.getMapDenseSize();
+	
+	writeU29(buffer, (dense_size << 1) | 0x01); // LSB supposed to be 1
 	printf("dense size of array: %u\n", dense_size);
 	
-	// @todo figure out why this is done in the crtmp server.
+	// 3. remove dense part, so we only have "name=value" pairs left which we store
 	for(uint32_t i = 0; i < dense_size; ++i) {
 		s.removeAt(i);	
 	}
+	map<string,Dictionary>::iterator it = s.begin();
+	map<string,Dictionary>::iterator it_end = s.end();
+	while(it != it_end) {
+		writeUTF(buffer, it->first);
+		writeAMF3Type(buffer, it->second);
+		++it;
+	}
 	
-	writeU29(buffer, (dense_size << 1) | 0x01);
+	// 4. indicate end of array
+	string empty_key = "";
+	writeAMF3String(buffer, empty_key);
+	
+	// 5. write dense portion. (note we use source which has all elements int
+	// but because we access using the [](uint32_t) operator we only get the
+	// dense part.
+	for(uint32_t i = 0; i < dense_size; ++i) {
+		Dictionary dense_dict = source[i];
+		writeAMF3Type(buffer, dense_dict);
+	}
 }
 
 void ofxAMFSerializer::writeUTF(IOBuffer& buffer, string value) {
@@ -182,7 +238,7 @@ void ofxAMFSerializer::writeType(IOBuffer& buffer, Dictionary& input) {
 		}
 		
 		case D_STRING: {
-			writeString(buffer, input);
+			
 			break;
 		}
 		
@@ -219,43 +275,40 @@ void ofxAMFSerializer::writeArray(IOBuffer& buffer, Dictionary& source) {
 	
 }
 
+// writes uint32_t as 1,2,3 or 4 bytes in big endian format.
 bool ofxAMFSerializer::writeU29(IOBuffer& buffer, uint32_t value) {
-	uint32_t temp = htonlex(value); // convert to big endian (network byte order)
+	uint32_t temp = htonlex(value); 
 	uint8_t* temp_ptr = (uint8_t*)&temp;
-	
-	if((0x00000000 <= value) && (value <= 0x0000007f)) {
-		printf("Given value: %u\n", value);
-		printf("store... : %02X\n", temp_ptr[3]);
+
+	if ((0x00000000 <= value) && (value <= 0x0000007f)) {
+		printf("U29 Given value: %u\n", value);
+		printf("U29 Store : %02X\n", temp_ptr[3]);
+		buffer.storeUInt8(temp_ptr[3]);
+		return true;
+	}
+	else if ((0x00000080 <= value) && (value <= 0x00003fff)) {
+		buffer.storeUInt8(((temp_ptr[2] << 1) | (temp_ptr[3] >> 7)) | 0x80);
+		buffer.storeUInt8(temp_ptr[3]&0x7f);
+		return true;
+	} else if ((0x00004000 <= value) && (value <= 0x001fffff)) {
+		buffer.storeUInt8(((temp_ptr[1] << 2) | (temp_ptr[2] >> 6)) | 0x80);
+		buffer.storeUInt8(((temp_ptr[2] << 1) | (temp_ptr[3] >> 7)) | 0x80);
+		buffer.storeUInt8(temp_ptr[3]&0x7f);
+		return true;
+	} else if ((0x0020000 <= value) && (value <= 0x01fffffff)) {
+		buffer.storeUInt8(((temp_ptr[0] << 2) | (temp_ptr[1] >> 6)) | 0x80);
+		buffer.storeUInt8(((temp_ptr[1] << 1) | (temp_ptr[2] >> 7)) | 0x80);
+		buffer.storeUInt8(temp_ptr[2] | 0x80);
 		buffer.storeUInt8(temp_ptr[3]);
 		return true;
 	}
 	return false;
-/*
-uint32_t temp = EHTONL(value);
-	uint8_t *pBuffer = (uint8_t*) & temp;
-	if ((0x00000000 <= value) && (value <= 0x0000007f)) {
-		buffer.ReadFromRepeat(pBuffer[3], 1);
-		return true;
-	} else if ((0x00000080 <= value) && (value <= 0x00003fff)) {
-		buffer.ReadFromRepeat(((pBuffer[2] << 1) | (pBuffer[3] >> 7)) | 0x80, 1);
-		buffer.ReadFromRepeat(pBuffer[3]&0x7f, 1);
-		return true;
-	} else if ((0x00004000 <= value) && (value <= 0x001fffff)) {
-		buffer.ReadFromRepeat(((pBuffer[1] << 2) | (pBuffer[2] >> 6)) | 0x80, 1);
-		buffer.ReadFromRepeat(((pBuffer[2] << 1) | (pBuffer[3] >> 7)) | 0x80, 1);
-		buffer.ReadFromRepeat(pBuffer[3]&0x7f, 1);
-		return true;
-	} else if ((0x0020000 <= value) && (value <= 0x01fffffff)) {
-		buffer.ReadFromRepeat(((pBuffer[0] << 2) | (pBuffer[1] >> 6)) | 0x80, 1);
-		buffer.ReadFromRepeat(((pBuffer[1] << 1) | (pBuffer[2] >> 7)) | 0x80, 1);
-		buffer.ReadFromRepeat(pBuffer[2] | 0x80, 1);
-		buffer.ReadFromRepeat(pBuffer[3], 1);
-		return true;
-	}
-*/
 }
 
-void ofxAMFSerializer::writeString(IOBuffer& buffer, Dictionary& source) {
+void ofxAMFSerializer::writeAMF3String(IOBuffer& buffer, string& source) {
+	uint16_t length = (uint16_t)source.length();
+	writeU29(buffer, (length << 1) | 0x01 ); 
+	buffer.storeString(source);
 }
 
 void ofxAMFSerializer::writeUint8(IOBuffer& buffer, uint8_t value) {
@@ -467,7 +520,8 @@ Dictionary ofxAMFSerializer::readString(IOBuffer& buffer) {
 Dictionary ofxAMFSerializer::readArray(IOBuffer& buffer) {
 	Dictionary result;
 	uint32_t num_els = buffer.consumeLittleEndianUInt32();
-	cout << "Number of elements in array: " << num_els << endl;
+	printf("Number of elements in array: %u in hex %04X\n",num_els);
+	
 	for(uint32_t i = 0; i < num_els; ++i) {
 		uint8_t type = buffer.consumeUInt8();
 		Dictionary array_el = readType(buffer, type);
@@ -510,6 +564,8 @@ Dictionary ofxAMFSerializer::readAMF3Array(IOBuffer& buffer) {
 	
 	// read dense portion
 	uint32_t dense_size = ref >> 1;
+	printf("dense size: %02X\n", dense_size);
+	printf("ref: %02X\n", ref);
 	for(uint32_t i = 0; i < dense_size; ++i) {
 		result[(uint32_t)i] = readAMF3Type(buffer);
 	}
@@ -571,5 +627,6 @@ bool ofxAMFSerializer::readU29(IOBuffer& buffer, uint32_t& value) {
 		}
 	}
 	cout << "readU29: " << value << endl;
+	printf("readU29 HEX: %02X\n", value);
 	return true;
 }
