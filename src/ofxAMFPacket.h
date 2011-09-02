@@ -1,5 +1,5 @@
-#ifndef OFXAMFMESSAGEH
-#define OFXAMFMESSAGEH
+#ifndef OFXAMFPACKET
+#define OFXAMFPACKET
 
 #include <vector>
 #include <string>
@@ -11,12 +11,16 @@ using std::string;
 
 class ofxAMFHeader;
 class ofxAMFMessage;
+//#include "ofxAMFMessage.h"
 
-class ofxAMFRequest {
+class ofxAMFPacket {
 public:
-	ofxAMFRequest();
-
+	ofxAMFPacket();
+	~ofxAMFPacket();
+	
 	// general
+	bool isAMF3();
+	bool isAMF0();
 	void setIsAMF3();
 	void setIsAMF0();
 	bool setClientVersion(uint16_t version);
@@ -30,6 +34,7 @@ public:
 	// messages.
 	void addMessage(ofxAMFMessage* message);
 	const vector<ofxAMFMessage*> getMessages() const;
+	ofxAMFMessage* getMessage(int dx);
 	uint16_t getNumMessages();
 	
 private:

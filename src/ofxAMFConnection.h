@@ -17,7 +17,6 @@
 #include "Poco/StringTokenizer.h"
 #include "Poco/String.h"
 #include <iostream>
-
 #include "IOBuffer.h"
 
 using Poco::Net::SocketReactor;
@@ -35,6 +34,7 @@ using Poco::toLowerInPlace;
 
 #include "Dictionary.h"
 #include "ofxAMFSerializer.h"
+#include "ofxAMFPacket.h"
 	
 using namespace std;
 class ofxAMFServer;

@@ -3,7 +3,9 @@
 
 #include "Dictionary.h"
 #include "IOBuffer.h"
-#include "ofxAMFRequest.h"
+
+#include "ofxAMFPacket.h"
+
 
 //#include <arpa/inet.h>
 #include "Endianness.h" // ofxMissing
@@ -11,6 +13,7 @@
 // nice: http://www.acmewebworks.com/Downloads/openCS/TheAMF.pdf
 // AFM 0: http://opensource.adobe.com/wiki/download/attachments/1114283/amf0_spec_121207.pdf
 // good info on enveloppes: http://osflash.org/documentation/amf/envelopes/remoting
+// also nice: https://github.com/timwhitlock/node-amf/blob/master/node-amf/serialize.js
 
 #include "ofxAMFTypes.h"
 
@@ -18,8 +21,10 @@ class ofxAMFSerializer {
 public:
 	ofxAMFSerializer();
 	virtual ~ofxAMFSerializer();
-	ofxAMFRequest deserialize(IOBuffer& buffer);
-	bool serialize(IOBuffer& buffer, Dictionary& input);
+	ofxAMFPacket deserialize(IOBuffer& buffer);
+	IOBuffer serialize(ofxAMFPacket& packet);
+	
+	
 
 	// AMF0
 	Dictionary readType(IOBuffer& buffer, int type);
@@ -33,13 +38,24 @@ public:
 	Dictionary readAMF3String(IOBuffer& buffer);
 	
 	bool readUTF(IOBuffer& buffer, string& result);
-	bool readU29(IOBuffer& buffer, uint32_t& value);
 	
-	void write(IOBuffer& buffer, Dictionary& source);
+	
+	void writeType(IOBuffer& buffer, Dictionary& source);
+	void writeAMF3Type(IOBuffer& buffer, Dictionary& source);
+	void writeAMF3Array(IOBuffer& buffer, Dictionary& source);
+	void writeAMF3Object(IOBuffer& buffer, Dictionary& source);
+	
 	void writeNull(IOBuffer& buffer, Dictionary& source);
 	void writeArray(IOBuffer& buffer, Dictionary& source);
 	void writeString(IOBuffer& buffer, Dictionary& source);
 	void writeUint8(IOBuffer& buffer, uint8_t value);
+	
+	void writeUTF(IOBuffer& buffer, string value);
+	
+
+	
+	bool readU29(IOBuffer& buffer, uint32_t& value);
+	bool writeU29(IOBuffer& buffer, uint32_t value);
 	
 private:
 

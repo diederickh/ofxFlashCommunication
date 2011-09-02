@@ -7,7 +7,15 @@ ofxAMFMessage::ofxAMFMessage()
 {
 }
 
-void ofxAMFMessage::setReponseURI(string uri) {
+void ofxAMFMessage::setData(Dictionary dict) {
+	data = dict;
+}
+
+Dictionary& ofxAMFMessage::getData() {
+	return data;
+}
+
+void ofxAMFMessage::setResponseURI(string uri) {
 	response_uri = uri;
 }
 
@@ -23,7 +31,7 @@ void ofxAMFMessage::setMessageType(uint8_t type) {
 	message_type = type;
 }
 
-string ofxAMFMessage::getResponesURI() {
+string ofxAMFMessage::getResponseURI() {
 	return response_uri;
 }
 

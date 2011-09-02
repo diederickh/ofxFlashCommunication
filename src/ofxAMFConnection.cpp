@@ -61,7 +61,14 @@ void ofxAMFConnection::onReadable(const AutoPtr<ReadableNotification>& pNotif) {
 			// when we retrieved all data, deserialize it.
 			num_content_bytes_received += n;
 			if(num_content_bytes_received >= content_length) {
-				amf3.deserialize(buffer);
+				ofxAMFPacket request = amf3.deserialize(buffer);
+				
+				// @todo notify for new request.
+				ofxAMFPacket response = request;
+				IOBuffer response_buffer = amf3.serialize(response);
+				response_buffer.printHex();
+				
+				
 			}
 			else {
 				cout << "no:" << num_content_bytes_received << endl;
