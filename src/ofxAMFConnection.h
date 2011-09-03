@@ -23,6 +23,7 @@
 #include "ofxAMFSerializer.h"
 #include "ofxAMFPacket.h"
 #include "ofxAMFHTTPResponse.h"
+#include "ofxAMFHTTPRequest.h"
 
 using Poco::Net::SocketReactor;
 using Poco::Net::SocketAcceptor;
@@ -50,7 +51,7 @@ public:
 	ofxAMFConnection(StreamSocket rSocket, SocketReactor& rReactor);
 	~ofxAMFConnection();
 	void setup(ofxAMFServer* amfServer);
-	int write(IOBuffer& buffer);
+	int write(IOBuffer& amfBuffer);
 	void onReadable(const AutoPtr<ReadableNotification>& pNotif);
 	void onShutdown(const AutoPtr<ShutdownNotification>& pNotif);
 	bool parseHTTPHeaders(string& headers, Dictionary& result);
@@ -58,11 +59,15 @@ private:
 	inline bool parseContentBufferWhenComplete();
 	void deserializeRequest();
 	ofxAMFServer* amf_server;
+	ofxAMFHTTPRequest amf_http_request;
+	
 	StreamSocket socket;
 	SocketReactor& reactor;
 	IOBuffer buffer;
+	IOBuffer amf_request_buffer;
 	ofxAMFSerializer amf3;
 	int state;
+	uint32_t start_body;
 	uint32_t content_length;
 	uint32_t bytes_waiting; 
 	//uint32_t num_content_bytes_received;

@@ -11,6 +11,7 @@ ofxAMFSerializer::~ofxAMFSerializer() {
 
 // serializes a packet
 IOBuffer ofxAMFSerializer::serialize(ofxAMFPacket& packet) {
+	cout << "ofxamfserializer::serialize()" << endl;
 	IOBuffer buffer;
 	buffer.setup();
 	
@@ -33,7 +34,7 @@ IOBuffer ofxAMFSerializer::serialize(ofxAMFPacket& packet) {
 	for(uint16_t i = 0; i < message_count; ++i) {
 		// write target and response uri.
 		ofxAMFMessage* message = packet.getMessage(i);
-		cout << "target uri: " << message->getTargetURI() << endl;
+		cout << "ofxamfserializer::serializer() - target uri: " << message->getTargetURI() << endl;
 
 		// okay the next couple of lines are confusing and need some work.
 		// when serializing a ofxAMFPacket for a AMF request from flash, we
@@ -65,7 +66,7 @@ IOBuffer ofxAMFSerializer::serialize(ofxAMFPacket& packet) {
 			
 
 			IOBuffer tmp_buffer;
-			//tmp_buffer.storeByte(AMF0_ARRAY); // 0x0A 
+			//tmp_buffer.storeByte(AMF0_ARRAY); // 0x0A  @todo <-- do not add this when we do not need to return multiple params
 			//tmp_buffer.storeBigEndianUInt32((uint32_t)0x01); 
 			
 			tmp_buffer.storeByte(AMF0_AMF3_OBJECT);  // 0x11
@@ -79,7 +80,8 @@ IOBuffer ofxAMFSerializer::serialize(ofxAMFPacket& packet) {
 			// append size/array info
 			cout << "Bytes in tmp bufer: " << tmp_buffer.getNumBytesStored() << endl;
 			buffer.storeBigEndianUInt32(tmp_buffer.getNumBytesStored());
-			
+			cout << "ofxamfserializer: num bytes as hex:";
+			buffer.printUInt16AsHex(tmp_buffer.getNumBytesStored());
 			// append the actual result/message
 			buffer.storeBuffer(tmp_buffer);
 												
@@ -144,9 +146,18 @@ void ofxAMFSerializer::writeAMF3Type(IOBuffer& buffer, Dictionary& input) {
 	printf("amf3 type: %02X\n",input.type);
 	switch(input.type) {
 		case D_NULL: {
-
+			writeAMF3Null(buffer, input);
 			break;
 		}
+		case D_BOOL: {
+			if((bool)input) {
+				writeAMF3True(buffer);
+			}
+			else {
+				writeAMF3False(buffer);
+			}
+			break;
+		};
 		
 		case D_MAP: {
 			if(input.isArray()) {
@@ -163,6 +174,23 @@ void ofxAMFSerializer::writeAMF3Type(IOBuffer& buffer, Dictionary& input) {
 			writeAMF3String(buffer, str);
 			break;
 		}
+		
+		case D_INT8:
+		case D_INT16:
+		case D_INT32:
+		case D_UINT8:
+		case D_UINT16:
+		case D_UINT32: {
+			writeAMF3Integer(buffer, input);
+			break;
+		}
+		
+		case D_UINT64:
+		case D_INT64:
+		case D_DOUBLE: {
+			writeAMF3Double(buffer, input);
+			break;
+		};
 		
 		default:{
 			printf("write amf3: Unhandled input type.\n");
@@ -189,6 +217,57 @@ void ofxAMFSerializer::writeAMF3Type(IOBuffer& buffer, Dictionary& input) {
 	,D_MAP		= 	12
 	*/
 
+}
+
+void ofxAMFSerializer::writeAMF3Null(IOBuffer& buffer, Dictionary& source) {
+	buffer.storeByte(AMF3_NULL);
+}
+
+void ofxAMFSerializer::writeAMF3True(IOBuffer& buffer) {
+	buffer.storeByte(AMF3_TRUE);
+}
+
+void ofxAMFSerializer::writeAMF3False(IOBuffer& buffer) {
+	buffer.storeByte(AMF3_FALSE);
+}
+
+
+// @todo sending [u]int[8,16,32,64] and doubles are all send as AMF3_DOUBLE,
+// we should send integers as integers etc..
+void ofxAMFSerializer::writeAMF3Double(IOBuffer& buffer, Dictionary& source) {
+	cout << ">> afm3 write double: " << (string)source << endl;
+	buffer.storeByte(AMF3_DOUBLE);
+	//nt64_t value = (uint64_t)source;
+	//cout << ">> amf3 write double: value is:" << value << endl;
+	buffer.storeBigEndianDouble((double)source);
+	//buffer.storeBigEndianUInt64((uint64_t)source);
+}
+
+void ofxAMFSerializer::writeAMF3Integer(IOBuffer& buffer, Dictionary& source) {
+	buffer.storeByte(AMF3_INTEGER);
+	writeU29(buffer, (uint32_t)source);
+	cout << ">> amf3 write integer: " << (uint32_t)source << endl;
+	//:writeU29(IOBuffer& buffer, uint32_t value) {	
+}
+
+
+void ofxAMFSerializer::writeUTF(IOBuffer& buffer, string value) {
+	uint16_t length = (uint16_t)value.length();
+	buffer.storeBigEndianUInt16(length);
+	buffer.storeString(value);
+}
+
+void ofxAMFSerializer::writeAMF3String(IOBuffer& buffer, string& source, bool writeType) {
+	if(writeType) {
+		buffer.storeByte(AMF3_STRING);
+	}
+	uint16_t length = (uint16_t)source.length();
+	writeU29(buffer, (length << 1) | 0x01 ); 
+	buffer.storeString(source);
+}
+
+void ofxAMFSerializer::writeUint8(IOBuffer& buffer, uint8_t value) {
+	
 }
 
 void ofxAMFSerializer::writeAMF3Array(IOBuffer& buffer, Dictionary& source) {
@@ -239,11 +318,7 @@ void ofxAMFSerializer::writeAMF3Array(IOBuffer& buffer, Dictionary& source) {
 	}
 }
 
-void ofxAMFSerializer::writeUTF(IOBuffer& buffer, string value) {
-	uint16_t length = (uint16_t)value.length();
-	buffer.storeBigEndianUInt16(length);
-	buffer.storeString(value);
-}
+
 
 void ofxAMFSerializer::writeType(IOBuffer& buffer, Dictionary& input) {
 	switch(input.type) {
@@ -261,7 +336,9 @@ void ofxAMFSerializer::writeType(IOBuffer& buffer, Dictionary& input) {
 			}
 			break;
 		}
-		
+		case D_BOOL: {
+			
+		}	
 		case D_STRING: {
 			
 			break;
@@ -302,7 +379,8 @@ void ofxAMFSerializer::writeArray(IOBuffer& buffer, Dictionary& source) {
 
 // writes uint32_t as 1,2,3 or 4 bytes in big endian format.
 bool ofxAMFSerializer::writeU29(IOBuffer& buffer, uint32_t value) {
-	uint32_t temp = htonlex(value); 
+	//uint32_t temp = htonlex(value); 
+	uint32_t temp = ToBE32(value); 
 	uint8_t* temp_ptr = (uint8_t*)&temp;
 
 	if ((0x00000000 <= value) && (value <= 0x0000007f)) {
@@ -330,18 +408,7 @@ bool ofxAMFSerializer::writeU29(IOBuffer& buffer, uint32_t value) {
 	return false;
 }
 
-void ofxAMFSerializer::writeAMF3String(IOBuffer& buffer, string& source, bool writeType) {
-	if(writeType) {
-		buffer.storeByte(AMF3_STRING);
-	}
-	uint16_t length = (uint16_t)source.length();
-	writeU29(buffer, (length << 1) | 0x01 ); 
-	buffer.storeString(source);
-}
 
-void ofxAMFSerializer::writeUint8(IOBuffer& buffer, uint8_t value) {
-	
-}
 
 // @todo pass Dictionary as input
 ofxAMFPacket ofxAMFSerializer::deserialize(IOBuffer& buffer) {
@@ -349,23 +416,23 @@ ofxAMFPacket ofxAMFSerializer::deserialize(IOBuffer& buffer) {
 	buffer.printHex();
 
 	// get version.
-	uint16_t version = buffer.consumeLittleEndianUInt16();
+	uint16_t version = buffer.consumeBigEndianUInt16();
 	packet.setClientVersion(version);
 	
 	// get headers count.
-	uint16_t header_count = buffer.consumeLittleEndianUInt16();
+	uint16_t header_count = buffer.consumeBigEndianUInt16();
 	
 	// parsing headers
 	for(uint16_t i = 0; i < header_count; ++i) {
 		printf("@todo implement header parsing\n");
 	}
 	
-	uint16_t message_count = buffer.consumeLittleEndianUInt16();
+	uint16_t message_count = buffer.consumeBigEndianUInt16();
 	
 	cout << "version: " << version << endl;
 	cout << "header count: " << header_count << endl;
 	cout << "message count: "<< message_count << endl;
-	
+	cout << flush ;
 	string target_uri = "";
 	string response_uri = "";
 	for(uint16_t i = 0; i < message_count; ++i) {
@@ -375,7 +442,7 @@ ofxAMFPacket ofxAMFSerializer::deserialize(IOBuffer& buffer) {
 		}
 		cout << "target uri: " << target_uri << endl;
 		cout << "response uri: " << response_uri << endl;
-
+		cout << flush;
 		ofxAMFMessage* message = new ofxAMFMessage();
 		message->setTargetURI(target_uri);
 		message->setResponseURI(response_uri);
@@ -383,7 +450,7 @@ ofxAMFPacket ofxAMFSerializer::deserialize(IOBuffer& buffer) {
 		
 		// body length (can be ignored): buffer.ignore(4)
 		//buffer.ignore(4);
-		uint32_t message_length = buffer.consumeLittleEndianUInt32();
+		uint32_t message_length = buffer.consumeBigEndianUInt32();
 		message->setMessageLength(message_length);
 		
 		uint8_t value_type = buffer.consumeUInt8();
@@ -412,7 +479,7 @@ ofxAMFPacket ofxAMFSerializer::deserialize(IOBuffer& buffer) {
 
 
 Dictionary ofxAMFSerializer::readType(IOBuffer& buffer, int type) {
-	printf("readType: %02X\n", type);
+	printf("ofxamfserializer: read amf0 type: %02X\n", type);
 
 	// @todo order by most frequest type
 	Dictionary result;
@@ -425,6 +492,7 @@ Dictionary ofxAMFSerializer::readType(IOBuffer& buffer, int type) {
 		}
 		
 		case AMF0_NUMBER: {
+			return readAMF0Number(buffer);
 			break;
 		}
 		case AMF0_BOOLEAN: {
@@ -468,6 +536,17 @@ Dictionary ofxAMFSerializer::readType(IOBuffer& buffer, int type) {
 	return result;
 }
 
+Dictionary ofxAMFSerializer::readAMF0Number(IOBuffer& buffer) {
+	Dictionary result = (double)0.0;
+	
+	double d = buffer.consumeBigEndianDouble();
+	cout << "ofxamfserializer: read amf 0 double: " << d << endl;
+	result = (double)d;
+	return result;
+
+}
+
+
 Dictionary ofxAMFSerializer::readAMF3Type(IOBuffer& buffer) {
 	uint8_t type = buffer.consumeUInt8();
 	printf("readType: %02X\n", type);
@@ -481,18 +560,23 @@ Dictionary ofxAMFSerializer::readAMF3Type(IOBuffer& buffer) {
 			break;
 		}  
 		case AMF3_NULL: {
+			result = readAMF3Null(buffer);
 			break;
 		} 
 		case AMF3_FALSE: {
+			result = readAMF3False(buffer);
 			break;
 		} 
 		case AMF3_TRUE: {
+			result = readAMF3True(buffer);
 			break;
 		} 
 		case AMF3_INTEGER: {
+			result = readAMF3Integer(buffer);
 			break;
 		} 
 		case AMF3_DOUBLE: {
+			result = readAMF3Double(buffer);
 			break;
 		} 
 		case AMF3_STRING: {
@@ -528,6 +612,58 @@ Dictionary ofxAMFSerializer::readAMF3Type(IOBuffer& buffer) {
 
 }
 
+Dictionary ofxAMFSerializer::readAMF3Null(IOBuffer& buffer) {
+	printf(">> AFM3: read null\n");
+	Dictionary result;
+	result.reset();
+	return result;
+}
+
+Dictionary ofxAMFSerializer::readAMF3True(IOBuffer& buffer) {
+	printf(">> AFM3: read true\n");
+	Dictionary result;
+	result = (bool)true;
+	return result;
+}
+
+Dictionary ofxAMFSerializer::readAMF3False(IOBuffer& buffer) {
+	printf(">> AFM3: read false\n");
+	Dictionary result;
+	result = (bool)false;
+	return result;
+}
+
+Dictionary ofxAMFSerializer::readAMF3Integer(IOBuffer& buffer) {
+	printf(">> AFM3: read integer\n");
+	Dictionary result;
+	uint32_t number = 0;
+	if(!readU29(buffer, number)) {
+		printf("error amf3: cannot read integer.\n");
+		result = (bool)0;
+		return result;
+	}
+	result = (uint32_t)number;
+	return result;
+}
+
+// @todo hmm just realized consume as little endian is not really
+// clear now; we use it when we assume the data is in network byte
+// order, but why would we want a little endian .. suppose we are on 
+// a big endian machine...
+// 
+// also, this could be just a amf0 number..
+Dictionary ofxAMFSerializer::readAMF3Double(IOBuffer& buffer) {
+	
+	printf(">> AMF3: read double\n");
+	Dictionary result = (double)0.0;
+	//return result;
+	
+	double d = buffer.consumeBigEndianDouble();
+	cout << ">> AFM3: double value: " << d << endl;
+	result = (double)d;
+	return result;
+}
+
 Dictionary ofxAMFSerializer::readObject(IOBuffer& buffer) {
 
 }
@@ -547,8 +683,9 @@ Dictionary ofxAMFSerializer::readString(IOBuffer& buffer) {
 // numeric keyed Actionscript Array
 Dictionary ofxAMFSerializer::readArray(IOBuffer& buffer) {
 	Dictionary result;
-	uint32_t num_els = buffer.consumeLittleEndianUInt32();
-	printf("Number of elements in array: %u in hex %04X\n",num_els);
+	uint32_t num_els = buffer.consumeBigEndianUInt32();
+	cout << "ofxamfserializer: readArray, number of elements: " << num_els << endl;
+	//printf("Number of elements in array: %u in hex %04X\n",num_els);
 	
 	for(uint32_t i = 0; i < num_els; ++i) {
 		uint8_t type = buffer.consumeUInt8();
@@ -610,10 +747,9 @@ Dictionary ofxAMFSerializer::readAMF3String(IOBuffer& buffer) {
 		return result;
 	}
 	
-	// did we get an reference.
+	// lsb == 0, get from reference table, lsb == 1, new string. (page 4, amf3 spec)
 	if( (ref & 0x01) == 0) {
-		printf("@todo handle string reference\n");
-		result = false;
+		result = strings[ref >> 1];
 		return result;
 	}
 	else {
@@ -623,14 +759,16 @@ Dictionary ofxAMFSerializer::readAMF3String(IOBuffer& buffer) {
 		}	
 		else {
 			result = buffer.consumeString(len);
+			strings.push_back(result); 
 		}
+
 	}
 	return result;
 }
 
 // Read next data as UTF string. (utf precedes with a 16bit length.)
 bool ofxAMFSerializer::readUTF(IOBuffer& buffer, string& result) {
-	uint16_t utf_length = buffer.consumeLittleEndianUInt16();
+	uint16_t utf_length = buffer.consumeBigEndianUInt16();
 	cout << "UTF length: " << utf_length << endl;	
 	if(utf_length > 0) {
 		result = buffer.consumeString(utf_length);

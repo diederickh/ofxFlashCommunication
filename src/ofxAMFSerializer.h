@@ -1,6 +1,9 @@
 #ifndef OFXAMFSERIALIZER
 #define OFXAMFSERIALIZER
 
+#include <vector>
+#include <string>
+
 #include "Dictionary.h"
 #include "IOBuffer.h"
 
@@ -17,6 +20,9 @@
 
 #include "ofxAMFTypes.h"
 
+using std::vector;
+using std::string;
+
 class ofxAMFSerializer {
 public:
 	ofxAMFSerializer();
@@ -26,16 +32,22 @@ public:
 	
 	
 
-	// AMF0
+	// AMF0, @todo rename to readAMF0[*]
 	Dictionary readType(IOBuffer& buffer, int type);
 	Dictionary readObject(IOBuffer& buffer);
 	Dictionary readString(IOBuffer& buffer);
 	Dictionary readArray(IOBuffer& buffer);
+	Dictionary readAMF0Number(IOBuffer& buffer);
 	
 	// AMF3
 	Dictionary readAMF3Type(IOBuffer& buffer);
 	Dictionary readAMF3Array(IOBuffer& buffer);
 	Dictionary readAMF3String(IOBuffer& buffer);
+	Dictionary readAMF3Null(IOBuffer& buffer);
+	Dictionary readAMF3True(IOBuffer& buffer);
+	Dictionary readAMF3False(IOBuffer& buffer);
+	Dictionary readAMF3Integer(IOBuffer& buffer);
+	Dictionary readAMF3Double(IOBuffer& buffer);
 	
 	bool readUTF(IOBuffer& buffer, string& result);
 	
@@ -45,6 +57,11 @@ public:
 	void writeAMF3Array(IOBuffer& buffer, Dictionary& source);
 	void writeAMF3Object(IOBuffer& buffer, Dictionary& source);
 	void writeAMF3String(IOBuffer& buffer, string& source, bool writeType = true);
+	void writeAMF3Null(IOBuffer& buffer, Dictionary& source);
+	void writeAMF3True(IOBuffer& buffer);
+	void writeAMF3False(IOBuffer& buffer);
+	void writeAMF3Double(IOBuffer& buffer, Dictionary& source);
+	void writeAMF3Integer(IOBuffer& buffer, Dictionary& source);
 		
 	void writeNull(IOBuffer& buffer, Dictionary& source);
 	void writeArray(IOBuffer& buffer, Dictionary& source);
@@ -59,7 +76,9 @@ public:
 	bool writeU29(IOBuffer& buffer, uint32_t value);
 	
 private:
-
+	// amf3 uses reference tables for certain types (string, objetcs, traits, byte arrays)
+	vector<string> strings;
+	
 };
 
 

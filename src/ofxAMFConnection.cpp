@@ -10,10 +10,12 @@ ofxAMFConnection::ofxAMFConnection(
 ,reactor(rReactor)
 ,amf_server(NULL)
 ,content_length(0)
+,start_body(0)
 ,bytes_waiting(UINT32_MAX)
 ,state(RETRIEVE_HEADER)
 {
 	buffer.setup();
+	amf_request_buffer.setup();
 	reactor.addEventHandler(socket, NObserver<ofxAMFConnection, ReadableNotification>(*this, &ofxAMFConnection::onReadable));
 	reactor.addEventHandler(socket, NObserver<ofxAMFConnection, ShutdownNotification>(*this, &ofxAMFConnection::onShutdown));
 }
@@ -38,34 +40,45 @@ void ofxAMFConnection::onReadable(const AutoPtr<ReadableNotification>& pNotif) {
 	}
 	cout << "\n--------------------------------------------------------------------\n";
 	cout << "\n";
+	cout << flush;
 	
 	// @todo - this is not working nicely at the moment, because we 
 	// need to parse the HTTP header better. We need to make sure that we have
 	// read until the "\r\n\r\n" which means we have read the complete header,
 	// then we need to check if we have received the total "Content-length"
-	cout << "Received bytes: " << n << " bytes." << endl;
+	cout << "ofxamfconnection: received bytes: " << n << " bytes." << endl;
 	if(n > 0) {
+		buffer.storeBytes(tmp, n);
+		if(amf_http_request.parseHTTPRequest(buffer, amf_request_buffer)) {
+			cout << "ofxamfconnection: we have a complete amf request" << endl;
+			deserializeRequest();
+		}
+		else {
+			cout << "ofxamfconnection: cannot parse http request yet." << endl;
+		}
+		
+		/*
 		// add the new bytes to the buffer.
 		buffer.storeBytes(tmp, n);
 		cout << "Bytes stored in buffer: " << buffer.getNumBytesStored() << endl; 
 		// step 1: read http headers	
 		if(state == RETRIEVE_HEADER) {
 			string raw_headers;
-			int until = buffer.consumeUntil("\r\n\r\n", raw_headers);
-			if(until) {
+			start_body = buffer.consumeUntil("\r\n\r\n", raw_headers);
+			if(start_body) {
 				Dictionary clean_headers;
 				if(parseHTTPHeaders(raw_headers, clean_headers)) {
-					content_length = clean_headers["content-length"].asUInt32();
+					content_length = clean_headers["content-length"].getAsUInt32();
 				}
-				cout << "Found end marker of http header at: " << until << endl;
+				cout << "Found end marker of http header at: " << start_body << endl;
 				cout << "Found this as content length: " << content_length << endl;
 				cout << "----------------- hex which is stored in buffer now -----------------\n";
-				buffer.printHex(0);
+				//buffer.printHex(0);
 				cout << "\n--------------------------------------------------------------------\n";
 			
 			
 				uint32_t bytes_stored = buffer.getNumBytesStored();
-				uint32_t bytes_expected = until + content_length;
+				uint32_t bytes_expected = start_body + content_length;
 				bytes_waiting = bytes_expected - bytes_stored;
 				cout << "Bytes to received yet: " << bytes_waiting << endl;
 				state = RETRIEVE_CONTENT;
@@ -73,10 +86,8 @@ void ofxAMFConnection::onReadable(const AutoPtr<ReadableNotification>& pNotif) {
 					return;
 				}
 				
-				cout << "----------------- AMF Message ---------------------------------------\n";
-				buffer.printHex(until);
-				cout << "\n--------------------------------------------------------------------\n";
 			}
+		
 			
 		}
 
@@ -89,6 +100,7 @@ void ofxAMFConnection::onReadable(const AutoPtr<ReadableNotification>& pNotif) {
 			parseContentBufferWhenComplete();
 			
 		}
+			*/
 	}
 	else {
 	
@@ -97,6 +109,7 @@ void ofxAMFConnection::onReadable(const AutoPtr<ReadableNotification>& pNotif) {
 }
 
 bool ofxAMFConnection::parseContentBufferWhenComplete() {
+	/*
 	if(bytes_waiting == 0) {
 		// reset state.
 		state = RETRIEVE_HEADER; 
@@ -104,11 +117,13 @@ bool ofxAMFConnection::parseContentBufferWhenComplete() {
 		return true;
 		
 	}
+	*/
 	return false;
 }
 
 // @todo maybe create ofxAMFHTTPRequest() as we have a ofxAMFHTTPResponse()
 bool ofxAMFConnection::parseHTTPHeaders(string& headers, Dictionary& result) {
+/*
 	cout << endl;
 	cout << "----------------------- raw http headers -----------------------------\n";
 	cout << headers << endl;
@@ -153,12 +168,18 @@ bool ofxAMFConnection::parseHTTPHeaders(string& headers, Dictionary& result) {
 	}
 	cout << "\n--------------------------------------------------------------------\n";
 	return true;
+	*/
+	return false;
 }
 
 void ofxAMFConnection::deserializeRequest() {
+//	cout << "----------------- RECEIVED AMF message ---------------------------------------\n";
+//	buffer.printHex(start_body);
+//	cout << "\n--------------------------------------------------------------------\n";
+	
 	// parse packet
-	ofxAMFPacket request = amf3.deserialize(buffer);
-			
+	ofxAMFPacket request = amf3.deserialize(amf_request_buffer);
+	
 	// @todo notify for new request.
 	// @todo testing serializing....
 	ofxAMFPacket response = request; // makes a complete copy!! (new instances created)
@@ -174,6 +195,7 @@ void ofxAMFConnection::deserializeRequest() {
 	http_buffer.printHex();
 	cout << "\n\n";
 //	delete this;
+
 			
 }
 
@@ -181,10 +203,10 @@ void ofxAMFConnection::onShutdown(const AutoPtr<ShutdownNotification>& pNotif) {
 	delete this;
 }
 
-int ofxAMFConnection::write(IOBuffer& buffer) {
-	int n =  buffer.getNumBytesStored();
+int ofxAMFConnection::write(IOBuffer& amfBuffer) {
+	int n =  amfBuffer.getNumBytesStored();
 	int bytes_left = n;
-	char* buffer_ptr = (char*)buffer.getPtr();
+	char* buffer_ptr = (char*)amfBuffer.getPtr();
 	
 	int done = socket.sendBytes(buffer_ptr, n);
 	bytes_left -= done;
