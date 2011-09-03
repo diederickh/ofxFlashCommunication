@@ -10,6 +10,7 @@ using std::string;
 class ofxAMFMessage {
 public:
 	ofxAMFMessage();
+	ofxAMFMessage(const ofxAMFMessage& other);
 	void setData(Dictionary dict);	
 	void setResponseURI(string uri);
 	void setTargetURI(string uri);
@@ -23,9 +24,10 @@ public:
 	uint8_t getMessageType();
 	
 	bool isAMF3();
-	
+	ofxAMFMessage& operator=(const ofxAMFMessage& other);
 
 private:
+	void copyFrom(const ofxAMFMessage& other);
 	Dictionary data;
 	string response_uri;
 	string target_uri;

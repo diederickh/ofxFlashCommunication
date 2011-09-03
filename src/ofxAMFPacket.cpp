@@ -1,22 +1,62 @@
 #include "ofxAMFPacket.h"
 #include "ofxAMFMessage.h"
 #include "ofxAMFHeader.h"
-
+#include "ofMain.h"
 ofxAMFPacket::ofxAMFPacket() {
+}
+
+ofxAMFPacket::ofxAMFPacket(const ofxAMFPacket& other) {
+	copyFrom(other);
 }
 
 ofxAMFPacket::~ofxAMFPacket() {
 	{
 		vector<ofxAMFHeader*>::iterator it = headers.begin();
 		while(it != headers.end()) {
-			delete *it;
+			if(*it != NULL) {
+				delete *it;
+				*it = NULL;
+			}
 			++it;
 		}
 	}
 	{
 		vector<ofxAMFMessage*>::iterator it = messages.begin();
+		cout << "Num messages in vector:" << messages.size() << endl;
 		while(it != messages.end()) {
-			delete *it;
+			if(*it != NULL) {
+				delete *it;
+				*it = NULL;
+			}
+			++it;
+		}
+	}
+}
+
+ofxAMFPacket& ofxAMFPacket::operator=(const ofxAMFPacket& other) {
+	copyFrom(other);
+	return *this;
+}
+
+void ofxAMFPacket::copyFrom(const ofxAMFPacket& other) {
+	client_version = other.client_version;
+
+	// copy headers
+	{
+		vector<ofxAMFHeader*>::const_iterator it = other.headers.begin();
+		while(it != other.headers.end()) {
+			ofxAMFHeader* copied_header = new ofxAMFHeader(*(*it));
+			addHeader(copied_header);
+			++it;
+		}
+	}
+
+	// copy messages.
+	{
+		vector<ofxAMFMessage*>::const_iterator it = other.messages.begin();
+		while(it != other.messages.end()) {
+			ofxAMFMessage* copied_message = new ofxAMFMessage(*(*it));
+			addMessage(copied_message);
 			++it;
 		}
 	}
@@ -68,6 +108,10 @@ const vector<ofxAMFHeader*> ofxAMFPacket::getHeaders() const {
 uint16_t ofxAMFPacket::getNumHeaders() {
 	return (uint16_t)headers.size();
 }
+
+const vector<ofxAMFHeader*>& ofxAMFPacket::getHeadersRef() const {
+	return headers;
+}
 	
 // messages.
 // -----------------------------------------------------------------------------
@@ -79,6 +123,9 @@ const vector<ofxAMFMessage*> ofxAMFPacket::getMessages() const{
 	return messages;
 }
 
+const vector<ofxAMFMessage*>& ofxAMFPacket::getMessagesRef() const {
+	return messages;
+}
 
 uint16_t ofxAMFPacket::getNumMessages() {
 	return (uint16_t)messages.size();

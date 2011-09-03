@@ -53,7 +53,8 @@ public:
 	void onShutdown(const AutoPtr<ShutdownNotification>& pNotif);
 	bool parseHTTPHeaders(string& headers, Dictionary& result);
 private:
-	void parseBuffer();
+	inline bool parseContentBufferWhenComplete();
+	void deserializeRequest();
 	ofxAMFServer* amf_server;
 	StreamSocket socket;
 	SocketReactor& reactor;
@@ -61,6 +62,7 @@ private:
 	ofxAMFSerializer amf3;
 	int state;
 	uint32_t content_length;
-	uint32_t num_content_bytes_received;
+	uint32_t bytes_waiting; 
+	//uint32_t num_content_bytes_received;
 
 };

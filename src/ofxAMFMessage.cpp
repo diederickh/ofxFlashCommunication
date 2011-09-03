@@ -7,6 +7,25 @@ ofxAMFMessage::ofxAMFMessage()
 {
 }
 
+// Copying.
+// -----------------------------------------------------------------------------
+ofxAMFMessage::ofxAMFMessage(const ofxAMFMessage& other) {
+	copyFrom(other);
+}
+
+ofxAMFMessage& ofxAMFMessage::operator=(const ofxAMFMessage& other) {
+	copyFrom(other);
+	return *this;
+}
+
+void ofxAMFMessage::copyFrom(const ofxAMFMessage& other) {
+	response_uri = other.response_uri;
+	data = other.data;
+	message_type = other.message_type;
+	message_length = other.message_length;
+}
+
+
 void ofxAMFMessage::setData(Dictionary dict) {
 	data = dict;
 }
