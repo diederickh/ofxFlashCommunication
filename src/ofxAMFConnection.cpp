@@ -72,6 +72,10 @@ void ofxAMFConnection::onReadable(const AutoPtr<ReadableNotification>& pNotif) {
 				if(!parseContentBufferWhenComplete()) {
 					return;
 				}
+				
+				cout << "----------------- AMF Message ---------------------------------------\n";
+				buffer.printHex(until);
+				cout << "\n--------------------------------------------------------------------\n";
 			}
 			
 		}
@@ -83,6 +87,7 @@ void ofxAMFConnection::onReadable(const AutoPtr<ReadableNotification>& pNotif) {
 			cout << "State is:" << state << endl;
 			cout << "Waiting for: " << bytes_waiting << " number of bytes" << endl;
 			parseContentBufferWhenComplete();
+			
 		}
 	}
 	else {
@@ -102,7 +107,7 @@ bool ofxAMFConnection::parseContentBufferWhenComplete() {
 	return false;
 }
 
-
+// @todo maybe create ofxAMFHTTPRequest() as we have a ofxAMFHTTPResponse()
 bool ofxAMFConnection::parseHTTPHeaders(string& headers, Dictionary& result) {
 	cout << endl;
 	cout << "----------------------- raw http headers -----------------------------\n";
@@ -155,9 +160,20 @@ void ofxAMFConnection::deserializeRequest() {
 	ofxAMFPacket request = amf3.deserialize(buffer);
 			
 	// @todo notify for new request.
+	// @todo testing serializing....
 	ofxAMFPacket response = request; // makes a complete copy!! (new instances created)
 	IOBuffer response_buffer = amf3.serialize(response);
+	cout << "-------------------------- going to send: ------------------------\n";
 	response_buffer.printHex();
+	cout << "\n---------------------------------------------------------------\n";
+
+	ofxAMFHTTPResponse http_response;
+	IOBuffer http_buffer = http_response.createHTTPResponse(response_buffer);
+	write(http_buffer);
+	cout << "================= HTTP RESPONSE ==============================" << endl;
+	http_buffer.printHex();
+	cout << "\n\n";
+//	delete this;
 			
 }
 
@@ -165,15 +181,22 @@ void ofxAMFConnection::onShutdown(const AutoPtr<ShutdownNotification>& pNotif) {
 	delete this;
 }
 
-int ofxAMFConnection::write(string sData) {
-	int n = sData.size();
-	int done = socket.sendBytes(sData.c_str(),sData.size());
+int ofxAMFConnection::write(IOBuffer& buffer) {
+	int n =  buffer.getNumBytesStored();
+	int bytes_left = n;
+	char* buffer_ptr = (char*)buffer.getPtr();
+	
+	int done = socket.sendBytes(buffer_ptr, n);
+	bytes_left -= done;
+	cout << "Writing to socket, send: " << done << " number of bytes already." << endl;
+	
 	// untested (cannot find a way to get inside this loop on Mac)
 	// then number of bytes actually sent can be less than requested
 	// as stated in the documentation. 
 	// http://pocoproject.org/docs/
-	while(n < done) {
-		done+= socket.sendBytes(sData.c_str(),sData.size());
+	while(bytes_left > 0) {
+		done = socket.sendBytes(buffer_ptr+done,bytes_left);
+		bytes_left -= done;
 	}
 	return done;
 }

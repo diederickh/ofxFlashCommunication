@@ -44,7 +44,7 @@ public:
 	void writeAMF3Type(IOBuffer& buffer, Dictionary& source);
 	void writeAMF3Array(IOBuffer& buffer, Dictionary& source);
 	void writeAMF3Object(IOBuffer& buffer, Dictionary& source);
-	void writeAMF3String(IOBuffer& buffer, string& source);
+	void writeAMF3String(IOBuffer& buffer, string& source, bool writeType = true);
 		
 	void writeNull(IOBuffer& buffer, Dictionary& source);
 	void writeArray(IOBuffer& buffer, Dictionary& source);

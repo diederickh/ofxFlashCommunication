@@ -19,6 +19,7 @@ ofxAMFMessage& ofxAMFMessage::operator=(const ofxAMFMessage& other) {
 }
 
 void ofxAMFMessage::copyFrom(const ofxAMFMessage& other) {
+	target_uri = other.target_uri;
 	response_uri = other.response_uri;
 	data = other.data;
 	message_type = other.message_type;

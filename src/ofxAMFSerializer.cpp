@@ -16,6 +16,7 @@ IOBuffer ofxAMFSerializer::serialize(ofxAMFPacket& packet) {
 	
 	// write version
 	buffer.storeBigEndianUInt16(packet.getClientVersion());
+	//buffer.storeBigEndianUInt16(0x00);
 	
 	// headers
 	uint16_t header_count = packet.getNumHeaders();
@@ -24,14 +25,22 @@ IOBuffer ofxAMFSerializer::serialize(ofxAMFPacket& packet) {
 		printf("@todo implement serializing of headers.\n");
 	}
 	
-	// messages
+	// message count
 	uint16_t message_count = packet.getNumMessages();
 	buffer.storeBigEndianUInt16(message_count);
+	
+	// messages
 	for(uint16_t i = 0; i < message_count; ++i) {
 		// write target and response uri.
 		ofxAMFMessage* message = packet.getMessage(i);
-		writeUTF(buffer, message->getTargetURI());
-		writeUTF(buffer, message->getResponseURI());
+		cout << "target uri: " << message->getTargetURI() << endl;
+
+		// okay the next couple of lines are confusing and need some work.
+		// when serializing a ofxAMFPacket for a AMF request from flash, we
+		// need to swap the target<-->response. (we still need to do this! but
+		// while testing I'm using the same values from the given ofxAMFPacket
+		writeUTF(buffer, message->getResponseURI() +"/onResult"); 
+		writeUTF(buffer, "");
 		
 		// @TODO ALL DATA IS STORED IN A AMF0 ARRAY OF SIZE 1, THEN
 		// A AMF3 ARRAY OF ARBITRARY SIZE, NEED TO FIGURE OUT WHY WE ALWAYS
@@ -50,19 +59,33 @@ IOBuffer ofxAMFSerializer::serialize(ofxAMFPacket& packet) {
 
 		if(packet.isAMF3()) {
 			printf("store afm3\n");
-			IOBuffer tmp_buffer;
-			tmp_buffer.storeByte(AMF0_AMF3_OBJECT);
 
 			// we write the contents to a tmp buffer, so we can get the size
 			// of it which we are supposed to add before the actually data.
+			
+
+			IOBuffer tmp_buffer;
+			tmp_buffer.storeByte(AMF0_ARRAY); // 0x0A
+			tmp_buffer.storeBigEndianUInt32((uint32_t)0x01);
+			
+			tmp_buffer.storeByte(AMF0_AMF3_OBJECT);  // 0x11
 			writeAMF3Type(tmp_buffer, first_data);
 			
-			cout << "\n----------------- tmp buffer hex -------------------\n";
+			cout << "\n----------------- generated AMF MESSAGE  -----------------\n";
 			tmp_buffer.printHex();
 			cout << "\n----------------------------------------------------\n\n";
+			
+			
+			// append size/array info
+			cout << "Bytes in tmp bufer: " << tmp_buffer.getNumBytesStored() << endl;
+			buffer.storeBigEndianUInt32(tmp_buffer.getNumBytesStored());
+			
+			// append the actual result/message
 			buffer.storeBuffer(tmp_buffer);
-			
-			
+												
+			cout << "\n----------------- generated AMF (everything) -----------------\n";
+			buffer.printHex();
+			cout << "\n----------------------------------------------------\n\n";
 		}
 		else {
 			printf("store amf0\n");
@@ -180,7 +203,7 @@ void ofxAMFSerializer::writeAMF3Array(IOBuffer& buffer, Dictionary& source) {
 
 
 	// 1. amf3 array
-	buffer.storeByte(AMF3_ARRAY); 
+	buffer.storeByte(AMF3_ARRAY); // 0x09
 	
 	// 2. dense size portion.
 	Dictionary s = source;
@@ -196,14 +219,16 @@ void ofxAMFSerializer::writeAMF3Array(IOBuffer& buffer, Dictionary& source) {
 	map<string,Dictionary>::iterator it = s.begin();
 	map<string,Dictionary>::iterator it_end = s.end();
 	while(it != it_end) {
-		writeUTF(buffer, it->first);
+		printf("@todo writeAMF3Array: check if this is correct!\n");
+		string key = it->first;
+		writeAMF3String(buffer, key);
 		writeAMF3Type(buffer, it->second);
 		++it;
 	}
 	
 	// 4. indicate end of array
 	string empty_key = "";
-	writeAMF3String(buffer, empty_key);
+	writeAMF3String(buffer, empty_key, false);
 	
 	// 5. write dense portion. (note we use source which has all elements int
 	// but because we access using the [](uint32_t) operator we only get the
@@ -305,7 +330,10 @@ bool ofxAMFSerializer::writeU29(IOBuffer& buffer, uint32_t value) {
 	return false;
 }
 
-void ofxAMFSerializer::writeAMF3String(IOBuffer& buffer, string& source) {
+void ofxAMFSerializer::writeAMF3String(IOBuffer& buffer, string& source, bool writeType) {
+	if(writeType) {
+		buffer.storeByte(AMF3_STRING);
+	}
 	uint16_t length = (uint16_t)source.length();
 	writeU29(buffer, (length << 1) | 0x01 ); 
 	buffer.storeString(source);

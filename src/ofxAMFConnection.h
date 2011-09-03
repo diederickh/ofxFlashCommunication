@@ -19,6 +19,11 @@
 #include <iostream>
 #include "IOBuffer.h"
 
+#include "Dictionary.h"
+#include "ofxAMFSerializer.h"
+#include "ofxAMFPacket.h"
+#include "ofxAMFHTTPResponse.h"
+
 using Poco::Net::SocketReactor;
 using Poco::Net::SocketAcceptor;
 using Poco::Net::ReadableNotification;
@@ -31,13 +36,10 @@ using Poco::Thread;
 using Poco::StringTokenizer;
 using Poco::toLowerInPlace;
 
-
-#include "Dictionary.h"
-#include "ofxAMFSerializer.h"
-#include "ofxAMFPacket.h"
-	
 using namespace std;
 class ofxAMFServer;
+
+
 class ofxAMFConnection {
 public:
 	enum ofxAMFConnectionStates {
@@ -48,7 +50,7 @@ public:
 	ofxAMFConnection(StreamSocket rSocket, SocketReactor& rReactor);
 	~ofxAMFConnection();
 	void setup(ofxAMFServer* amfServer);
-	int write(string sData);
+	int write(IOBuffer& buffer);
 	void onReadable(const AutoPtr<ReadableNotification>& pNotif);
 	void onShutdown(const AutoPtr<ShutdownNotification>& pNotif);
 	bool parseHTTPHeaders(string& headers, Dictionary& result);
