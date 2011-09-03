@@ -40,7 +40,7 @@ IOBuffer ofxAMFSerializer::serialize(ofxAMFPacket& packet) {
 		// need to swap the target<-->response. (we still need to do this! but
 		// while testing I'm using the same values from the given ofxAMFPacket
 		writeUTF(buffer, message->getResponseURI() +"/onResult"); 
-		writeUTF(buffer, "");
+		writeUTF(buffer, "null");
 		
 		// @TODO ALL DATA IS STORED IN A AMF0 ARRAY OF SIZE 1, THEN
 		// A AMF3 ARRAY OF ARBITRARY SIZE, NEED TO FIGURE OUT WHY WE ALWAYS
@@ -65,8 +65,8 @@ IOBuffer ofxAMFSerializer::serialize(ofxAMFPacket& packet) {
 			
 
 			IOBuffer tmp_buffer;
-			tmp_buffer.storeByte(AMF0_ARRAY); // 0x0A
-			tmp_buffer.storeBigEndianUInt32((uint32_t)0x01);
+			//tmp_buffer.storeByte(AMF0_ARRAY); // 0x0A 
+			//tmp_buffer.storeBigEndianUInt32((uint32_t)0x01); 
 			
 			tmp_buffer.storeByte(AMF0_AMF3_OBJECT);  // 0x11
 			writeAMF3Type(tmp_buffer, first_data);
