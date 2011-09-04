@@ -31,6 +31,7 @@ bool ofxAMFHTTPRequest::parseHTTPRequest(IOBuffer& buffer, IOBuffer& amfResultBu
 		uint32_t bytes_left = bytes_total - bytes_stored;
 		if(bytes_left == 0) {
 			amfResultBuffer.storeBuffer(buffer, num_bytes_in_body);
+			//cout << headers.toString() << endl;
 			return true;
 		}
 	}

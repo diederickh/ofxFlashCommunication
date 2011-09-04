@@ -31,5 +31,10 @@
 #define AMF3_XML            0x0b
 #define AMF3_BYTEARRAY      0x0c
 
-
+#define AMF3_TRAITS_DYNAMIC "____isDynamic____"
+#define AMF3_TRAITS_DYNAMIC_LEN 17
+#define AMF3_TRAITS "____traits____"
+#define AMF3_TRAITS_LEN 14
+#define AMF3_TRAITS_CLASSNAME "____class_name____"
+#define AMF3_TRAITS_CLASSNAME_LEN 18
 #endif

@@ -48,6 +48,7 @@ public:
 	Dictionary readAMF3False(IOBuffer& buffer);
 	Dictionary readAMF3Integer(IOBuffer& buffer);
 	Dictionary readAMF3Double(IOBuffer& buffer);
+	Dictionary readAMF3Object(IOBuffer& buffer);
 	
 	bool readUTF(IOBuffer& buffer, string& result);
 	
@@ -78,6 +79,8 @@ public:
 private:
 	// amf3 uses reference tables for certain types (string, objetcs, traits, byte arrays)
 	vector<string> strings;
+	vector<Dictionary> objects;
+	vector<Dictionary> traits;
 	
 };
 
