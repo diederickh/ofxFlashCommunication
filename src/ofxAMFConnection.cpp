@@ -44,11 +44,11 @@ void ofxAMFConnection::setup(ofxAMFServer* amfServer) {
 void ofxAMFConnection::onReadable(const AutoPtr<ReadableNotification>& pNotif) {
 	uint8_t tmp[1024];
 	int n = socket.receiveBytes(tmp, 1024);
-
 	if(n > 0) {
 		buffer.storeBytes(tmp, n);
 		if(amf_http_request.parseHTTPRequest(buffer, amf_request_buffer)) {
-			deserializeRequest();
+			deserializeRequest(); // uncomment
+			//delete this; // tmp
 		}
 	}
 	else {
