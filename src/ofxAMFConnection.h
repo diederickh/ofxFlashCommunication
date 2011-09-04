@@ -43,10 +43,6 @@ class ofxAMFServer;
 
 class ofxAMFConnection {
 public:
-	enum ofxAMFConnectionStates {
-		 RETRIEVE_HEADER
-		,RETRIEVE_CONTENT
-	};
 	
 	ofxAMFConnection(StreamSocket rSocket, SocketReactor& rReactor);
 	~ofxAMFConnection();
@@ -54,22 +50,24 @@ public:
 	int write(IOBuffer& amfBuffer);
 	void onReadable(const AutoPtr<ReadableNotification>& pNotif);
 	void onShutdown(const AutoPtr<ShutdownNotification>& pNotif);
-	bool parseHTTPHeaders(string& headers, Dictionary& result);
+
 private:
-	inline bool parseContentBufferWhenComplete();
 	void deserializeRequest();
+	
+	// amf
 	ofxAMFServer* amf_server;
 	ofxAMFHTTPRequest amf_http_request;
-	
+	ofxAMFSerializer amf3;
+		
+	// network
 	StreamSocket socket;
 	SocketReactor& reactor;
+
+	// buffers
 	IOBuffer buffer;
 	IOBuffer amf_request_buffer;
-	ofxAMFSerializer amf3;
-	int state;
 	uint32_t start_body;
 	uint32_t content_length;
 	uint32_t bytes_waiting; 
-	//uint32_t num_content_bytes_received;
 
 };

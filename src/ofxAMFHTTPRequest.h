@@ -1,7 +1,6 @@
 #ifndef OFXAMFHTTPREQUESTH
 #define OFXAMFHTTPREQUESTH
 
-
 #include <iostream>
 #include <string>
 
@@ -23,9 +22,7 @@ public:
 	
 private:
 	bool parseHTTPHeaders();
-//	bool parseHTTPBody();
 	IOBuffer amf_buffer;
-//	int state;
 	uint32_t num_bytes_in_header;
 	uint32_t num_bytes_in_body;
 	string raw_headers;

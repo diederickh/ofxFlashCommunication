@@ -7,8 +7,6 @@ ofxAMFMessage::ofxAMFMessage()
 {
 }
 
-// Copying.
-// -----------------------------------------------------------------------------
 ofxAMFMessage::ofxAMFMessage(const ofxAMFMessage& other) {
 	copyFrom(other);
 }

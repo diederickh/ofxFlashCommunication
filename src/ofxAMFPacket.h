@@ -11,7 +11,6 @@ using std::string;
 
 class ofxAMFHeader;
 class ofxAMFMessage;
-//#include "ofxAMFMessage.h"
 
 class ofxAMFPacket {
 public:

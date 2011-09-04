@@ -33,7 +33,7 @@ void ofxAMFServer::addPolicy(string domain, string port) {
 
 bool ofxAMFServer::start() {
 	if(socket != NULL) {
-		printf("ofxAMFServer already created\n");
+		ofLogError("ofxAMFServer already created");
 		return false;
 	}
 	address = new SocketAddress(server_host, server_port);
@@ -51,9 +51,9 @@ void ofxAMFServer::addClient(ofxAMFConnection* con) {
 void ofxAMFServer::removeClient(ofxAMFConnection* con) {
 	vector<ofxAMFConnection*>::iterator it = std::find(clients.begin(), clients.end(), con);
 	if(it == clients.end()) {
-		printf("Error while trying to remove a client; not found.\n");
+		ofLogError("Error while trying to remove a client; not found.");
 		return;
 	}
-	printf("Removed client\n");
+	ofLogNotice("Removed client");
 	clients.erase(it);
 }

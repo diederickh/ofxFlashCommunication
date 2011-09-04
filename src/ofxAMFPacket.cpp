@@ -5,10 +5,6 @@
 ofxAMFPacket::ofxAMFPacket() {
 }
 
-ofxAMFPacket::ofxAMFPacket(const ofxAMFPacket& other) {
-	copyFrom(other);
-}
-
 ofxAMFPacket::~ofxAMFPacket() {
 	{
 		vector<ofxAMFHeader*>::iterator it = headers.begin();
@@ -19,12 +15,17 @@ ofxAMFPacket::~ofxAMFPacket() {
 	}
 	{
 		vector<ofxAMFMessage*>::iterator it = messages.begin();
-		cout << "Num messages in vector:" << messages.size() << endl;
 		while(it != messages.end()) {
 			delete *it;
 			++it;
 		}
 	}
+}
+
+// Copying
+// -----------------------------------------------------------------------------
+ofxAMFPacket::ofxAMFPacket(const ofxAMFPacket& other) {
+	copyFrom(other);
 }
 
 ofxAMFPacket& ofxAMFPacket::operator=(const ofxAMFPacket& other) {

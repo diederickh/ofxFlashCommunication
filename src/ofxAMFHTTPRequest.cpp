@@ -57,9 +57,7 @@ bool ofxAMFHTTPRequest::parseHTTPHeaders() {
 		
 		// 0 = GET or POST
 		if(i > 0 && spec_token.count() < 2) {
-			cout 	<< "parse http header error: spec count not 2 for: "
-					<< header_tokens[i]
-					<< endl;
+			ofLogError("ofxamfhttprequest: parse http header error: spec count not 2 for: " +header_tokens[i])
 			return false;
 		}
 		if(i == 0) {
