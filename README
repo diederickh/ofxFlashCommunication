@@ -13,3 +13,12 @@ Install & setup
 - to receive messages from flash use: flash.hasMessage(), flash.getNextMessage()
 - to send messages to flash use: flash.send("some message as string")
 
+
+Include directories for Code::Blocks (windows)
+==============================================
+- when ofxFlashCommunication is in of/addons/ofxFlashCommunication, add this:
+../../../addons/ofxMissing/src
+
+- or when you have it in addons_roxlu or addons_diederick (as how I store them)
+../../../../addons_diederick/ofxFlashCommunication/src/
+
