@@ -2,6 +2,8 @@
 #include "ofxAMFServer.h"
 #include "ofxFlashCommunication.h"
 
+int ofxAMFConnection::count = 0;
+
 ofxAMFConnection::ofxAMFConnection(
 	 StreamSocket rSocket
 	,SocketReactor& rReactor
@@ -17,6 +19,8 @@ ofxAMFConnection::ofxAMFConnection(
 	amf_request_buffer.setup();
 	reactor.addEventHandler(socket, NObserver<ofxAMFConnection, ReadableNotification>(*this, &ofxAMFConnection::onReadable));
 	reactor.addEventHandler(socket, NObserver<ofxAMFConnection, ShutdownNotification>(*this, &ofxAMFConnection::onShutdown));
+	count++;
+	cout << "ofxAMFConnction - created: " << count << endl;
 }
 
 ofxAMFConnection::~ofxAMFConnection() {
@@ -24,6 +28,8 @@ ofxAMFConnection::~ofxAMFConnection() {
 	reactor.removeEventHandler(socket, NObserver<ofxAMFConnection, ShutdownNotification>(*this, &ofxAMFConnection::onShutdown));
 	amf_server->removeClient(this);
 	amf_server = NULL;
+	count--;
+	cout << "ofxAMFConnction - deleted: " << count << endl;
 }
 
 
@@ -41,12 +47,10 @@ void ofxAMFConnection::onReadable(const AutoPtr<ReadableNotification>& pNotif) {
 	if(n > 0) {
 		buffer.storeBytes(tmp, n);
 		if(amf_http_request.parseHTTPRequest(buffer, amf_request_buffer)) {
-			cout << "ofxamfconnection: we have a complete amf request" << endl;
 			deserializeRequest();
 		}
 	}
 	else {
-	
 		delete this;
 	}
 }
@@ -64,16 +68,16 @@ void ofxAMFConnection::deserializeRequest() {
 
 	// tmp, serialize again.
 	IOBuffer response_buffer = amf3.serialize(response);
-	cout << "-------------------------- going to send: ------------------------\n";
-	response_buffer.printHex();
-	cout << "\n---------------------------------------------------------------\n";
+	//cout << "-------------------------- going to send: ------------------------\n";
+	//response_buffer.printHex();
+	//cout << "\n---------------------------------------------------------------\n";
 
 	ofxAMFHTTPResponse http_response;
 	IOBuffer http_buffer = http_response.createHTTPResponse(response_buffer);
 	write(http_buffer);
-	cout << "================= HTTP RESPONSE ==============================" << endl;
-	http_buffer.printHex();
-	cout << "\n\n";
+	//cout << "================= HTTP RESPONSE ==============================" << endl;
+	//http_buffer.printHex();
+	//cout << "\n\n";
 //	delete this;
 }
 

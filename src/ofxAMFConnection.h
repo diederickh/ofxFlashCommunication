@@ -43,7 +43,7 @@ class ofxAMFServer;
 
 class ofxAMFConnection {
 public:
-	
+	static int count; // tmp	
 	ofxAMFConnection(StreamSocket rSocket, SocketReactor& rReactor);
 	~ofxAMFConnection();
 	void setup(ofxAMFServer* amfServer);

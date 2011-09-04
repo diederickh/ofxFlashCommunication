@@ -54,8 +54,7 @@ IOBuffer ofxAMFSerializer::serialize(ofxAMFPacket& packet) {
 					
 			// append size/array info
 			buffer.storeBigEndianUInt32(tmp_buffer.getNumBytesStored());
-			buffer.printUInt16AsHex(tmp_buffer.getNumBytesStored());
-		
+				
 			//! append the created AMF message
 			buffer.storeBuffer(tmp_buffer);
 												
@@ -71,7 +70,7 @@ IOBuffer ofxAMFSerializer::serialize(ofxAMFPacket& packet) {
 // Serialize to a AMF3 type
 // -------------------------
 void ofxAMFSerializer::writeAMF3Type(IOBuffer& buffer, Dictionary& input) {
-	printf("ofxamfserializer: amf3 type: %02X\n",input.type);
+	//printf("ofxamfserializer: amf3 type: %02X\n",input.type);
 
 	switch(input.type) {
 		case D_NULL: {
@@ -331,7 +330,6 @@ bool ofxAMFSerializer::writeU29(IOBuffer& buffer, uint32_t value) {
 //------------------------------------------------------------------------------
 ofxAMFPacket ofxAMFSerializer::deserialize(IOBuffer& buffer) {
 	ofxAMFPacket packet;
-	buffer.printHex();
 
 	// get version.
 	uint16_t version = buffer.consumeBigEndianUInt16();
@@ -631,7 +629,6 @@ Dictionary ofxAMFSerializer::readAMF3Object(IOBuffer& buffer) {
 	}
 	
 	string type_identifier = trait_definition[AMF3_TRAITS_CLASSNAME];
-	cout << ":: type = " << type_identifier << endl;
 	
 	//!implement AMF3_TRAITS members.
 	
