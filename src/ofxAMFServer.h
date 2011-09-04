@@ -53,7 +53,7 @@ public:
 	
 	// event listener: addListener
 	template <typename ArgumentsType, class ListenerClass>
-	static void addListener(
+	void addListener(
 					ListenerClass* listener
 					,void (ListenerClass::*listenerMethod)(ArgumentsType&))
 	{

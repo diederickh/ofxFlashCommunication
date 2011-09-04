@@ -37,6 +37,7 @@ public:
 	Dictionary readAMF3Integer(IOBuffer& buffer);
 	Dictionary readAMF3Double(IOBuffer& buffer);
 	Dictionary readAMF3Object(IOBuffer& buffer);
+	Dictionary readAMF3Undefined(IOBuffer& buffer);
 
 	void writeAMF3Type(IOBuffer& buffer, Dictionary& source);
 	void writeAMF3Array(IOBuffer& buffer, Dictionary& source);
@@ -47,6 +48,7 @@ public:
 	void writeAMF3False(IOBuffer& buffer);
 	void writeAMF3Double(IOBuffer& buffer, Dictionary& source);
 	void writeAMF3Integer(IOBuffer& buffer, Dictionary& source);
+	void writeAMF3Undefined(IOBuffer& buffer);
 
 	// AMF 0
 	Dictionary readType(IOBuffer& buffer, int type);

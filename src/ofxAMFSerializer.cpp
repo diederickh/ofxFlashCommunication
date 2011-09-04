@@ -73,6 +73,11 @@ void ofxAMFSerializer::writeAMF3Type(IOBuffer& buffer, Dictionary& input) {
 	//printf("ofxamfserializer: amf3 type: %02X\n",input.type);
 
 	switch(input.type) {
+		case D_UNDEFINED: {
+			writeAMF3Undefined(buffer);
+			break;
+		}
+		
 		case D_NULL: {
 			writeAMF3Null(buffer, input);
 			break;
@@ -129,9 +134,12 @@ void ofxAMFSerializer::writeAMF3Type(IOBuffer& buffer, Dictionary& input) {
 	}
 }
 
+// AMF3 - write UNDEFINED (0x00)
+void ofxAMFSerializer::writeAMF3Undefined(IOBuffer& buffer) {
+	buffer.storeByte(AMF3_UNDEFINED);
+}
 
-
-// AMF3 -  Write NULL (0x01)
+// AMF3 -  Write NULL (0x01) // @todo why pass Dictionary& as well?
 // --------------------------
 void ofxAMFSerializer::writeAMF3Null(IOBuffer& buffer, Dictionary& source) {
 	buffer.storeByte(AMF3_NULL);
@@ -330,7 +338,8 @@ bool ofxAMFSerializer::writeU29(IOBuffer& buffer, uint32_t value) {
 //------------------------------------------------------------------------------
 ofxAMFPacket ofxAMFSerializer::deserialize(IOBuffer& buffer) {
 	ofxAMFPacket packet;
-
+	//buffer.printHex();
+	
 	// get version.
 	uint16_t version = buffer.consumeBigEndianUInt16();
 	packet.setClientVersion(version);
@@ -363,7 +372,14 @@ ofxAMFPacket ofxAMFSerializer::deserialize(IOBuffer& buffer) {
 		
 		uint8_t value_type = buffer.consumeUInt8();
 		Dictionary result = readType(buffer, value_type);
-		message->setParams(result);
+		/*
+		cout << "raw result:" << endl;
+		cout << "--------------------------" << endl;
+		cout << result.toString() << endl;
+		cout << "--------------------------" << endl;
+		cout << endl;
+		*/
+		message->setParams(result[(uint32_t)1]);
 	}
 	return packet;
 }
@@ -447,7 +463,7 @@ Dictionary ofxAMFSerializer::readAMF3Type(IOBuffer& buffer) {
 	Dictionary result;
 	switch(type) {
 		case AMF3_UNDEFINED: {
-			ofLogError("ofxamfserializer: @todo implement read AFM3_UNDEFINED");	
+			//result = readAMF3Undefined(buffer);
 			break;
 		}  
 		case AMF3_NULL: {
@@ -504,8 +520,15 @@ Dictionary ofxAMFSerializer::readAMF3Type(IOBuffer& buffer) {
 			break;
 		}
 	};
+	//cout << "result:" << result.toString() << endl;
 	return result;
 
+}
+
+Dictionary ofxAMFSerializer::readAMF3Undefined(IOBuffer& buffer) {
+	Dictionary result;
+	result.reset();
+	return result;
 }
 
 Dictionary ofxAMFSerializer::readAMF3Null(IOBuffer& buffer) {
