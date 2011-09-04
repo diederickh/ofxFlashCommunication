@@ -14,6 +14,7 @@
 using Poco::StringTokenizer;
 using Poco::toLowerInPlace;
 using std::string;
+using namespace roxlu;
 
 class ofxAMFHTTPRequest {
 public:

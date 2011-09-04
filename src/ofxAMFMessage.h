@@ -6,6 +6,7 @@
 #include "Dictionary.h"
 
 using std::string;
+using namespace roxlu;
 
 class ofxAMFMessage {
 public:

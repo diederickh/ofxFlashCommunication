@@ -18,6 +18,7 @@
 
 using std::vector;
 using std::string;
+using namespace roxlu;
 
 class ofxAMFSerializer {
 public:
