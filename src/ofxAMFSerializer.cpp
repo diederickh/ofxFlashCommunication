@@ -40,17 +40,17 @@ IOBuffer ofxAMFSerializer::serialize(ofxAMFPacket& packet) {
 		writeUTF(buffer, "null");
 
 		// write: the dictionary which hold the result
-		Dictionary data = message->getData();
-		Dictionary first_data = data[(uint32_t)0];
-
+		Dictionary data = message->getReturnValues();
+//		Dictionary data = message->getParams();
 
 		if(packet.isAMF3()) {
 			// tmp buffer will hold the actualy amf serialized dictionary.
 			IOBuffer tmp_buffer;
 
 			tmp_buffer.storeByte(AMF0_AMF3_OBJECT);  // 0x11
-			writeAMF3Type(tmp_buffer, first_data);
-			
+//			writeAMF3Type(tmp_buffer, first_data);
+			writeAMF3Type(tmp_buffer, data);
+
 					
 			// append size/array info
 			buffer.storeBigEndianUInt32(tmp_buffer.getNumBytesStored());
@@ -363,8 +363,7 @@ ofxAMFPacket ofxAMFSerializer::deserialize(IOBuffer& buffer) {
 		
 		uint8_t value_type = buffer.consumeUInt8();
 		Dictionary result = readType(buffer, value_type);
-		message->setData(result);
-	
+		message->setParams(result);
 	}
 	return packet;
 }

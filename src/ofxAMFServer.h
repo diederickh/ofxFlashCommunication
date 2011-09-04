@@ -15,6 +15,7 @@
 #include <vector>
 #include <string>
 
+#include "ofxAMFEvent.h"
 #include "ofxFlashPolicy.h"
 #include "ofxAMFConnection.h"
 #include "ofMain.h" // for debugging
@@ -32,8 +33,11 @@ using Poco::Net::SocketAcceptor;
 using std::string;
 using std::vector;
 
+extern ofEvent<ofxAMFEvent> ofx_amf_event_dispatcher;
+
 template<typename T>
 class ofxAMFSocketAcceptor;
+
 
 class ofxAMFServer {
 public:
@@ -44,6 +48,18 @@ public:
 	void removeClient(ofxAMFConnection* con);
 	void addClient(ofxAMFConnection* con);
 	bool start();
+	
+	void notifyEvent(ofxAMFEvent& ev);
+	
+	// event listener: addListener
+	template <typename ArgumentsType, class ListenerClass>
+	static void addListener(
+					ListenerClass* listener
+					,void (ListenerClass::*listenerMethod)(ArgumentsType&))
+	{
+		ofAddListener(ofx_amf_event_dispatcher, listener, listenerMethod);
+	}
+	
 private: 
 	string server_host;
 	int server_port;

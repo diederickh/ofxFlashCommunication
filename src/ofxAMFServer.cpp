@@ -1,5 +1,7 @@
 #include "ofxAMFServer.h"
 
+ofEvent<ofxAMFEvent> ofx_amf_event_dispatcher;
+
 ofxAMFServer::ofxAMFServer()
 :server_port(0)
 ,server_host("")
@@ -56,4 +58,8 @@ void ofxAMFServer::removeClient(ofxAMFConnection* con) {
 	}
 	ofLogNotice("Removed client");
 	clients.erase(it);
+}
+
+void ofxAMFServer::notifyEvent(ofxAMFEvent& event) {
+	ofNotifyEvent(ofx_amf_event_dispatcher, event);
 }

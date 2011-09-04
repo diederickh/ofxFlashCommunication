@@ -12,13 +12,15 @@ class ofxAMFMessage {
 public:
 	ofxAMFMessage();
 	ofxAMFMessage(const ofxAMFMessage& other);
-	void setData(Dictionary dict);
+	void setParams(Dictionary dict);
+	void setReturnValues(Dictionary dict);
 	void setResponseURI(string uri);
 	void setTargetURI(string uri);
 	void setMessageLength(uint32_t len);
 	void setMessageType(uint8_t type);
 
-	Dictionary& getData();
+	Dictionary& getParams();
+	Dictionary& getReturnValues();
 	string getResponseURI();
 	string getTargetURI();
 	uint32_t getMessageLength();
@@ -29,7 +31,8 @@ public:
 
 private:
 	void copyFrom(const ofxAMFMessage& other);
-	Dictionary data;
+	Dictionary params;
+	Dictionary return_values;
 	string response_uri;
 	string target_uri;
 	uint32_t message_length;

@@ -1,0 +1,9 @@
+ofxAMFServer
+============
+Beta version of AMF server to allow simple remoting between flash and
+openFrameworks. Use a basic netconnection in flash, and make a request to the
+amf server.
+
+Most basic types are implemented, but none of the object references! 
+For simple use cases where you want to get some data from a remote server the 
+current implementation will suffice.

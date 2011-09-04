@@ -1,3 +1,14 @@
+INTRO
+======
+The ofxFlashCommunication addon aims to create a simple and straightforward
+way to communicate between Flash and openFrameworks. This addon started with
+ofxFlashCommunication which communicates over a socket and uses simple string
+messages to send data from client<-->server. 
+
+Recently I add ofxAMFserver, a more robust, easier and faster solution to
+do remoting. 
+
+
 ofxFlashCommunication
 =====================
 Allows you to create a flash server to which you can connect
@@ -22,3 +33,35 @@ Include directories for Code::Blocks (windows)
 - or when you have it in addons_roxlu or addons_diederick (as how I store them)
 ../../../../addons_diederick/ofxFlashCommunication/src/
 
+
+
+
+
+ofxAMFServer
+============
+ofxAMFServer is a AMF implementation  for openFrameworks. You can use the 
+default netconnection to make remote calls on a ofxAMFServer. This part of
+the addon will probably be the successor of ofxFlashCommunication (though this
+is still very well usable for simple message events).
+
+ofxAMFServer works for most basic AMF3/0 object types; Implementating object
+references is on the todo list.
+
+To use the amf server, create a ofxAMFServer member in your testApp and 
+start it like this:
+
+<example>
+
+// Create a amf server.
+amf_server.setup("localhost", 1234);
+amf_server.start();
+amf_server.addListener(this, &testApp::onAMFevent);
+
+</example>
+
+In this example onAMFEvent, which has this definition in testApp.h:
+void onAMFevent(ofxAMFEvent& ev), will be called when a new AMF request is 
+received. Use ev.getTargetURI() to get the "method" you should call. This 
+targeturi is, for example "MyClass.SomeMethod". To pass values back set the 
+return values on the event object: ev.setReturnValues(dict).  You pass a 
+Dictionary object to it. See the ofxMissing addon for this Dictionary type.

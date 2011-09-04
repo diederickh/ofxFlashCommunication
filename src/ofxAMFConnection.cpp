@@ -63,12 +63,25 @@ void ofxAMFConnection::deserializeRequest() {
 	ofxAMFPacket request = amf3.deserialize(amf_request_buffer);
 
 	// @todo notify for new request.
-	// @todo testing serializing....
-	ofxAMFPacket response = request; // makes a complete copy!! (new instances created)
+//		ofxAMFEvent(ofxAMFPacket& amfPacket, ofxAMFMessage& amfMessage);
+	//ofxAMFEvent ev;
+	//amf_server->notifyEvent(ev);
+	const vector<ofxAMFMessage*>& amf_messages = request.getMessagesRef();
+	vector<ofxAMFMessage*>::const_iterator it = amf_messages.begin();
+	while(it != amf_messages.end()) {
+		// notify.
+		ofxAMFEvent ev(request, *(*it));
+		amf_server->notifyEvent(ev);
+		++it;
+	}
 
+
+	
+	// @todo testing serializing....
+	//ofxAMFPacket response = request; // makes a complete copy!! (new instances created)
 
 	// tmp, serialize again.
-	IOBuffer response_buffer = amf3.serialize(response);
+	IOBuffer response_buffer = amf3.serialize(request);
 	//cout << "-------------------------- going to send: ------------------------\n";
 	//response_buffer.printHex();
 	//cout << "\n---------------------------------------------------------------\n";
@@ -79,7 +92,7 @@ void ofxAMFConnection::deserializeRequest() {
 	//cout << "================= HTTP RESPONSE ==============================" << endl;
 	//http_buffer.printHex();
 	//cout << "\n\n";
-//	delete this;
+	//delete this;
 }
 
 void ofxAMFConnection::onShutdown(const AutoPtr<ShutdownNotification>& pNotif) {

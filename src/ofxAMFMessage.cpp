@@ -19,18 +19,27 @@ ofxAMFMessage& ofxAMFMessage::operator=(const ofxAMFMessage& other) {
 void ofxAMFMessage::copyFrom(const ofxAMFMessage& other) {
 	target_uri = other.target_uri;
 	response_uri = other.response_uri;
-	data = other.data;
+	params = other.params;
 	message_type = other.message_type;
 	message_length = other.message_length;
+	return_values = other.return_values;
 }
 
 
-void ofxAMFMessage::setData(Dictionary dict) {
-	data = dict;
+void ofxAMFMessage::setParams(Dictionary dict) {
+	params = dict;
 }
 
-Dictionary& ofxAMFMessage::getData() {
-	return data;
+Dictionary& ofxAMFMessage::getParams() {
+	return params;
+}
+
+void ofxAMFMessage::setReturnValues(Dictionary dict) {
+	return_values = dict;
+}
+
+Dictionary& ofxAMFMessage::getReturnValues() {
+	return return_values;
 }
 
 void ofxAMFMessage::setResponseURI(string uri) {
