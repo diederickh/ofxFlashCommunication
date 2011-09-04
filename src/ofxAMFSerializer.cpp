@@ -2,6 +2,7 @@
 #include "ofxAMFMessage.h"
 #include "ofMain.h" // only for debugging
 
+
 ofxAMFSerializer::ofxAMFSerializer() {
 }
 
@@ -68,9 +69,11 @@ IOBuffer ofxAMFSerializer::serialize(ofxAMFPacket& packet) {
 			IOBuffer tmp_buffer;
 			//tmp_buffer.storeByte(AMF0_ARRAY); // 0x0A  @todo <-- do not add this when we do not need to return multiple params
 			//tmp_buffer.storeBigEndianUInt32((uint32_t)0x01); 
+			Dictionary test_data;
+			test_data["___TIME____"] = ofGetElapsedTimeMillis();
 			
 			tmp_buffer.storeByte(AMF0_AMF3_OBJECT);  // 0x11
-			writeAMF3Type(tmp_buffer, first_data);
+			writeAMF3Type(tmp_buffer, test_data);
 			
 			cout << "\n----------------- generated AMF MESSAGE  -----------------\n";
 			tmp_buffer.printHex();
@@ -93,9 +96,7 @@ IOBuffer ofxAMFSerializer::serialize(ofxAMFPacket& packet) {
 			printf("store amf0\n");
 			writeType(buffer, data);
 		}
-		
 	}
-	
 	return buffer;
 }
 /*
@@ -123,25 +124,6 @@ IOBuffer ofxAMFSerializer::serialize(ofxAMFPacket& packet) {
         }
 
 */
-
-void ofxAMFSerializer::writeAMF3Object(IOBuffer& buffer, Dictionary& source) {
-	printf("write amf3 object\n");	
-	buffer.storeByte(AMF3_OBJECT);
-	
-	Dictionary s = source;
-	uint32_t dense_size = s.getMapDenseSize();
-	printf("dense size of array: %u\n", dense_size);
-	
-	// @todo figure out why this is done in the crtmp server.
-	for(uint32_t i = 0; i < dense_size; ++i) {
-		s.removeAt(i);	
-	}
-	
-	writeU29(buffer, (dense_size << 1) | 0x01);
-
-	//writeU29(buffer, 0x0b);	
-}
-
 void ofxAMFSerializer::writeAMF3Type(IOBuffer& buffer, Dictionary& input) {
 	printf("amf3 type: %02X\n",input.type);
 	switch(input.type) {
@@ -164,7 +146,8 @@ void ofxAMFSerializer::writeAMF3Type(IOBuffer& buffer, Dictionary& input) {
 				writeAMF3Array(buffer, input);
 			}
 			else {
-				printf("@todo write amf3: write a object map\n");
+				writeAMF3Object(buffer, input);
+				
 			}
 			break;
 		}
@@ -218,6 +201,50 @@ void ofxAMFSerializer::writeAMF3Type(IOBuffer& buffer, Dictionary& input) {
 	*/
 
 }
+
+
+void ofxAMFSerializer::writeAMF3Object(IOBuffer& buffer, Dictionary& source) {
+	printf("write amf3 object\n");	
+	buffer.storeByte(AMF3_OBJECT);
+	uint32_t traits_count = 0x0b;
+	if(!writeU29(buffer, traits_count)) {
+		cout << "ofxamfserialzier: write amf3 object, cannot write traits count" << endl;
+		return;
+	}
+	
+	string class_name = "";
+	writeAMF3String(buffer, class_name, false);
+	
+	
+	map<string,Dictionary>::iterator it = source.begin();
+	map<string,Dictionary>::iterator it_end = source.end();
+	while(it != it_end) {
+
+		string keyname = it->first;
+		writeAMF3String(buffer, keyname,false);
+		writeAMF3Type(buffer, it->second);
+		++it;
+	}
+	
+	writeAMF3String(buffer, class_name,false);
+
+	/*
+	Dictionary s = source;
+	uint32_t dense_size = s.getMapDenseSize();
+	printf("dense size of array: %u\n", dense_size);
+	
+	// @todo figure out why this is done in the crtmp server.
+	for(uint32_t i = 0; i < dense_size; ++i) {
+		s.removeAt(i);	
+	}
+	
+	writeU29(buffer, (dense_size << 1) | 0x01);
+
+	//writeU29(buffer, 0x0b);	
+	*/
+}
+
+
 
 void ofxAMFSerializer::writeAMF3Null(IOBuffer& buffer, Dictionary& source) {
 	buffer.storeByte(AMF3_NULL);

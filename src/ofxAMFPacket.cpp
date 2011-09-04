@@ -13,10 +13,7 @@ ofxAMFPacket::~ofxAMFPacket() {
 	{
 		vector<ofxAMFHeader*>::iterator it = headers.begin();
 		while(it != headers.end()) {
-			if(*it != NULL) {
-				delete *it;
-				*it = NULL;
-			}
+			*it = NULL;
 			++it;
 		}
 	}
@@ -24,10 +21,7 @@ ofxAMFPacket::~ofxAMFPacket() {
 		vector<ofxAMFMessage*>::iterator it = messages.begin();
 		cout << "Num messages in vector:" << messages.size() << endl;
 		while(it != messages.end()) {
-			if(*it != NULL) {
-				delete *it;
-				*it = NULL;
-			}
+			delete *it;
 			++it;
 		}
 	}
