@@ -3,7 +3,7 @@
 
 #include <sstream>
 #include <string>
-#include "IOBuffer.h"
+#include "ofxMissing.h"
 
 using std::stringstream;
 using std::string;

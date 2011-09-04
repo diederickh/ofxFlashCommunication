@@ -8,8 +8,7 @@
 #include "Poco/Thread.h"
 #include "Poco/StringTokenizer.h"
 #include "Poco/String.h"
-#include "IOBuffer.h"
-#include "Dictionary.h"
+#include "ofxMissing.h"
 
 using Poco::StringTokenizer;
 using Poco::toLowerInPlace;
@@ -20,7 +19,7 @@ class ofxAMFHTTPRequest {
 public:
 	ofxAMFHTTPRequest();
 	bool parseHTTPRequest(IOBuffer& buffer, IOBuffer& amfResultBuffer);
-	
+
 private:
 	bool parseHTTPHeaders();
 	IOBuffer amf_buffer;

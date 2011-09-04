@@ -10,9 +10,7 @@
 #include <vector>
 #include <string>
 
-#include "IOBuffer.h"
-#include "Dictionary.h"
-#include "Endianness.h"
+#include "ofxMissing.h"
 #include "ofxAMFPacket.h"
 #include "ofxAMFTypes.h"
 
@@ -28,7 +26,7 @@ public:
 	// Serialize & Deserialze
 	ofxAMFPacket deserialize(IOBuffer& buffer);
 	IOBuffer serialize(ofxAMFPacket& packet);
-	
+
 	// AMF3
 	Dictionary readAMF3Type(IOBuffer& buffer);
 	Dictionary readAMF3Array(IOBuffer& buffer);
@@ -39,7 +37,7 @@ public:
 	Dictionary readAMF3Integer(IOBuffer& buffer);
 	Dictionary readAMF3Double(IOBuffer& buffer);
 	Dictionary readAMF3Object(IOBuffer& buffer);
-		
+
 	void writeAMF3Type(IOBuffer& buffer, Dictionary& source);
 	void writeAMF3Array(IOBuffer& buffer, Dictionary& source);
 	void writeAMF3Object(IOBuffer& buffer, Dictionary& source);
@@ -49,14 +47,14 @@ public:
 	void writeAMF3False(IOBuffer& buffer);
 	void writeAMF3Double(IOBuffer& buffer, Dictionary& source);
 	void writeAMF3Integer(IOBuffer& buffer, Dictionary& source);
-		
+
 	// AMF 0
 	Dictionary readType(IOBuffer& buffer, int type);
 	Dictionary readObject(IOBuffer& buffer);
 	Dictionary readString(IOBuffer& buffer);
 	Dictionary readArray(IOBuffer& buffer);
 	Dictionary readNumber(IOBuffer& buffer);
-	
+
 	void writeType(IOBuffer& buffer, Dictionary& source);
 	void writeNull(IOBuffer& buffer, Dictionary& source);
 	void writeArray(IOBuffer& buffer, Dictionary& source);
@@ -65,7 +63,7 @@ public:
 	bool readU29(IOBuffer& buffer, uint32_t& value);
 	bool writeU29(IOBuffer& buffer, uint32_t value);
 	bool readUTF(IOBuffer& buffer, string& result);
-	
+
 private:
 	// amf3 referenced values (partly implemented)
 	vector<string> strings;

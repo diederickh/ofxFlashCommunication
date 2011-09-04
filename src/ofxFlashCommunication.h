@@ -64,7 +64,7 @@ private:
 	ServerSocket*	socket;
 	SocketReactor*	reactor;
 	SocketAddress*	address;
-	
+
 	ofxFlashSocketAcceptor<ofxFlashConnection>* acceptor;
 	vector<ofxFlashPolicy>						policies;
 	vector<ofxFlashConnection*> 				clients;
@@ -81,7 +81,7 @@ public:
 		,com(pCom)
 	{
 	}
-	
+
 	ofxFlashCommunication* com;
 protected:
 	virtual T* createServiceHandler(StreamSocket& sock) {

@@ -3,7 +3,7 @@
 
 #include <inttypes.h>
 #include <string>
-#include "Dictionary.h"
+#include "ofxMissing.h"
 
 using std::string;
 using namespace roxlu;
@@ -12,7 +12,7 @@ class ofxAMFMessage {
 public:
 	ofxAMFMessage();
 	ofxAMFMessage(const ofxAMFMessage& other);
-	void setData(Dictionary dict);	
+	void setData(Dictionary dict);
 	void setResponseURI(string uri);
 	void setTargetURI(string uri);
 	void setMessageLength(uint32_t len);
@@ -23,7 +23,7 @@ public:
 	string getTargetURI();
 	uint32_t getMessageLength();
 	uint8_t getMessageType();
-	
+
 	bool isAMF3();
 	ofxAMFMessage& operator=(const ofxAMFMessage& other);
 

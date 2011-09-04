@@ -17,9 +17,8 @@
 #include "Poco/StringTokenizer.h"
 #include "Poco/String.h"
 #include <iostream>
-#include "IOBuffer.h"
 
-#include "Dictionary.h"
+#include "ofxMissing.h"
 #include "ofxAMFSerializer.h"
 #include "ofxAMFPacket.h"
 #include "ofxAMFHTTPResponse.h"
@@ -40,10 +39,14 @@ using Poco::toLowerInPlace;
 using namespace std;
 class ofxAMFServer;
 
+// @todo move this stuff to a generic include or use std::numeric limits (?)
+#ifndef UINT32_MAX
+#define UINT32_MAX  (0xffffffff)
+#endif
 
 class ofxAMFConnection {
 public:
-	static int count; // tmp	
+	static int count; // tmp
 	ofxAMFConnection(StreamSocket rSocket, SocketReactor& rReactor);
 	~ofxAMFConnection();
 	void setup(ofxAMFServer* amfServer);
@@ -53,12 +56,12 @@ public:
 
 private:
 	void deserializeRequest();
-	
+
 	// amf
 	ofxAMFServer* amf_server;
 	ofxAMFHTTPRequest amf_http_request;
 	ofxAMFSerializer amf3;
-		
+
 	// network
 	StreamSocket socket;
 	SocketReactor& reactor;
@@ -68,6 +71,6 @@ private:
 	IOBuffer amf_request_buffer;
 	uint32_t start_body;
 	uint32_t content_length;
-	uint32_t bytes_waiting; 
+	uint32_t bytes_waiting;
 
 };

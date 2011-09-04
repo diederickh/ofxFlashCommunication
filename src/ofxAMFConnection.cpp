@@ -1,6 +1,7 @@
 #include "ofxAMFConnection.h"
 #include "ofxAMFServer.h"
 #include "ofxFlashCommunication.h"
+#include <inttypes.h>
 
 int ofxAMFConnection::count = 0;
 
@@ -40,10 +41,10 @@ void ofxAMFConnection::setup(ofxAMFServer* amfServer) {
 
 // Read some data from the socket.
 // --------------------------------
-void ofxAMFConnection::onReadable(const AutoPtr<ReadableNotification>& pNotif) {	
+void ofxAMFConnection::onReadable(const AutoPtr<ReadableNotification>& pNotif) {
 	uint8_t tmp[1024];
 	int n = socket.receiveBytes(tmp, 1024);
-	
+
 	if(n > 0) {
 		buffer.storeBytes(tmp, n);
 		if(amf_http_request.parseHTTPRequest(buffer, amf_request_buffer)) {
@@ -60,7 +61,7 @@ void ofxAMFConnection::onReadable(const AutoPtr<ReadableNotification>& pNotif) {
 // --------------------------------------------------------
 void ofxAMFConnection::deserializeRequest() {
 	ofxAMFPacket request = amf3.deserialize(amf_request_buffer);
-	
+
 	// @todo notify for new request.
 	// @todo testing serializing....
 	ofxAMFPacket response = request; // makes a complete copy!! (new instances created)
@@ -92,10 +93,10 @@ int ofxAMFConnection::write(IOBuffer& amfBuffer) {
 	int n =  amfBuffer.getNumBytesStored();
 	int bytes_left = n;
 	char* buffer_ptr = (char*)amfBuffer.getPtr();
-	
+
 	int done = socket.sendBytes(buffer_ptr, n);
 	bytes_left -= done;
-	
+
 
 	while(bytes_left > 0) {
 		done = socket.sendBytes(buffer_ptr+done,bytes_left);
