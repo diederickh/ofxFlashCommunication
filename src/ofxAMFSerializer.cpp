@@ -372,6 +372,7 @@ ofxAMFPacket ofxAMFSerializer::deserialize(IOBuffer& buffer) {
 		
 		uint8_t value_type = buffer.consumeUInt8();
 		Dictionary result = readType(buffer, value_type);
+		
 		/*
 		cout << "raw result:" << endl;
 		cout << "--------------------------" << endl;
@@ -379,7 +380,9 @@ ofxAMFPacket ofxAMFSerializer::deserialize(IOBuffer& buffer) {
 		cout << "--------------------------" << endl;
 		cout << endl;
 		*/
-		message->setParams(result[(uint32_t)1]);
+		// @todo this needs some serious testing... I need to create a 
+		// flash app which sends all kinds of different params
+		message->setParams(result[(uint32_t)0]);
 	}
 	return packet;
 }
