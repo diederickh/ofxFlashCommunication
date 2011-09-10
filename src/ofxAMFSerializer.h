@@ -1,6 +1,8 @@
 #ifndef OFXAMFSERIALIZER
 #define OFXAMFSERIALIZER
 
+// Based on Gnash, CRTMP, AMFPHP, ZendPHP
+// ----------------------------------------
 // nice: http://www.acmewebworks.com/Downloads/openCS/TheAMF.pdf
 // AFM 0: http://opensource.adobe.com/wiki/download/attachments/1114283/amf0_spec_121207.pdf
 // good info on enveloppes: http://osflash.org/documentation/amf/envelopes/remoting
@@ -38,6 +40,7 @@ public:
 	Dictionary readAMF3Double(IOBuffer& buffer);
 	Dictionary readAMF3Object(IOBuffer& buffer);
 	Dictionary readAMF3Undefined(IOBuffer& buffer);
+	Dictionary readAMF3ByteArray(IOBuffer& buffer);
 
 	void writeAMF3Type(IOBuffer& buffer, Dictionary& source);
 	void writeAMF3Array(IOBuffer& buffer, Dictionary& source);
@@ -49,6 +52,7 @@ public:
 	void writeAMF3Double(IOBuffer& buffer, Dictionary& source);
 	void writeAMF3Integer(IOBuffer& buffer, Dictionary& source);
 	void writeAMF3Undefined(IOBuffer& buffer);
+	void writeAMF3ByteArray(IOBuffer& buffer, Dictionary& source);
 
 	// AMF 0
 	Dictionary readType(IOBuffer& buffer, int type);
@@ -71,6 +75,7 @@ private:
 	vector<string> strings;
 	vector<Dictionary> objects;
 	vector<Dictionary> traits;
+	vector<Dictionary> byte_arrays;
 };
 
 

@@ -82,7 +82,10 @@ void ofxAMFSerializer::writeAMF3Type(IOBuffer& buffer, Dictionary& input) {
 			writeAMF3Null(buffer, input);
 			break;
 		}
-		
+		case D_BYTEARRAY: {
+			writeAMF3ByteArray(buffer, input);
+			break;
+		}
 		case D_BOOL: {
 			if((bool)input) {
 				writeAMF3True(buffer);
@@ -256,6 +259,19 @@ void ofxAMFSerializer::writeAMF3Object(IOBuffer& buffer, Dictionary& source) {
 	writeAMF3String(buffer, class_name,false);
 }
 
+// AMF3 - Byte array
+// ------------------
+void ofxAMFSerializer::writeAMF3ByteArray(IOBuffer& buffer, Dictionary& source) {
+	buffer.storeByte(AMF3_BYTEARRAY);
+	string tmp = (string)source;
+	uint32_t byte_size = (tmp.length() << 1) | 0x01;
+	if(!writeU29(buffer, byte_size)) {
+		ofLogError("Error while storing byte array size");
+		return;
+	}
+	buffer.storeString(tmp);
+}
+
 
 // AMF0 - Write UTF string 
 // -----------------------
@@ -373,12 +389,13 @@ ofxAMFPacket ofxAMFSerializer::deserialize(IOBuffer& buffer) {
 		uint8_t value_type = buffer.consumeUInt8();
 		Dictionary result = readType(buffer, value_type);
 		
-		
+		/*
 		cout << "raw result:" << endl;
 		cout << "--------------------------" << endl;
 		cout << result.toJSON() << endl;
 		cout << "--------------------------" << endl;
 		cout << endl;
+		*/
 		
 		// @todo this needs some serious testing... I need to create a 
 		// flash app which sends all kinds of different params
@@ -514,7 +531,7 @@ Dictionary ofxAMFSerializer::readAMF3Type(IOBuffer& buffer) {
 			break;
 		} 
 		case AMF3_BYTEARRAY: {
-			ofLogError("ofxamfserializer: @todo implement read AMF3_BYTEARRAY");	
+			result = readAMF3ByteArray(buffer);
 			break;
 		} 
 		default: {
@@ -564,10 +581,33 @@ Dictionary ofxAMFSerializer::readAMF3Integer(IOBuffer& buffer) {
 	return result;
 }
 
+
 Dictionary ofxAMFSerializer::readAMF3Double(IOBuffer& buffer) {
 	Dictionary result = (double)0.0;
 	double d = buffer.consumeBigEndianDouble();
 	result = (double)d;
+	return result;
+}
+
+Dictionary ofxAMFSerializer::readAMF3ByteArray(IOBuffer& buffer) {
+	uint32_t ref = 0;
+	Dictionary result;
+	if(!readU29(buffer, ref)) {
+		result = (bool)false;
+		return result;
+	}
+	// no reference
+	if((ref & 0x01) == 0x01) {
+		int num_bytes = ref >> 1;
+		string bytes = buffer.consumeString(num_bytes);
+		result = bytes;
+		result.isByteArray(true);
+		byte_arrays.push_back(result);
+	}
+	else {
+		// return referenced...
+		result = byte_arrays[ref >> 1];
+	}
 	return result;
 }
 
@@ -605,9 +645,7 @@ Dictionary ofxAMFSerializer::readArray(IOBuffer& buffer) {
 // See AMFPHP which has a excellent, clear implementation.
 // -------------------------------------------------------
 Dictionary ofxAMFSerializer::readAMF3Object(IOBuffer& buffer) {
-
-Dictionary result;
-	cout << endl << endl <<  "readAMF3Object" << endl << "===============" << endl;
+	Dictionary result;
 	
 	//get reference...
 	uint32_t ref;
@@ -655,6 +693,8 @@ Dictionary result;
 		}
 	}
 	
+	// we create and store a new object already as it can be referenced 
+	// when parsing the dynamic properties.
 	int new_object_index = objects.size();
 	objects.push_back(result);
 	
@@ -668,255 +708,19 @@ Dictionary result;
 	else {	
 		read_dynamic_properties = is_dynamic;
 	}
-	
-	
-	// as3 object.
+		
+	// dynamic properties 
 	if(read_dynamic_properties) {
-		cout << "Read dynamic props" << endl;
 		Dictionary key = readAMF3String(buffer);
 		while ((string)key != "") {
 			Dictionary value = readAMF3Type(buffer);
 			result[(string)key] = value;
 			key = readAMF3String(buffer);
 		} 
-	
 		//!implement explicit types
 	}
 	objects[new_object_index] = result;
 	return result;
-
-	/*
-	Dictionary result;
-
-	// inline or return by referenced object.
-	uint32_t ref;
-	if(!readU29(buffer, ref)) {
-		result = (bool)false;
-		ofLogError("ofxamfserializer: readamf3 object error reading reference.");
-	}
-	bool is_inline = ((ref & 0x01) != 0);
-	ref = ref >> 1;
-	Dictionary trait_definition = Dictionary();
-	if(is_inline) {
-		bool inline_class_def = ((ref & 0x01) != 0);
-		ref = ref >> 1;
-		
-		if(inline_class_def) {
-			Dictionary type_identifier = readAMF3String(buffer);
-			bool is_typed_obj = type_identifier != "";
-			bool is_externalizable = ((ref & 0x01) != 0);
-			ref = ref >> 1;
-			bool is_dynamic = ((ref & 0x01) != 0);
-			ref = ref >> 1;
-			uint32_t class_member_count = ref;
-			
-			//!implement
-			for(uint32_t i = 0; i < class_member_count; ++i) {
-				ofLogError("ofxamfserializer: @todo read class member names");
-				//trait_definition[AMF3_TRAITS][i] = ....
-			}
-			
-			trait_definition[AMF3_TRAITS_DYNAMIC] = (bool)is_dynamic;
-			trait_definition[AMF3_TRAITS_CLASSNAME] = type_identifier;
-			traits.push_back(trait_definition);
-			cout << "Traits def:" << (string)type_identifier << endl;
-			
-		}
-		else {	
-			// the traits are passed as reference.
-			//cout << "handle of traits: " << ref << endl;
-			//!implement
-			trait_definition = traits[ref];
-			//cout << (string)result << endl;
-			//ofLogError("ofxamfserializer: @todo read amf3 object, handle inline class def");
-		}
-	}
-	else {
-		// not inline, we should retrieve by reference.
-		//!implement
-		ofLogError("ofxamfserializer: @todo handle object reference");
-		cout << "object dx:" << ref << endl;
-		return objects[ref-1];
-	}
-	
-	string type_identifier = trait_definition[AMF3_TRAITS_CLASSNAME];
-	
-	//!implement AMF3_TRAITS members.
-	
-	
-	// as3 object.
-	if(trait_definition[AMF3_TRAITS_DYNAMIC]) {
-		Dictionary key = readAMF3String(buffer);
-		while (key != "") {
-			cout << "key: " << (string)key << endl;
-			Dictionary value = readAMF3Type(buffer);
-
-			result[(string)key] = value;
-			key = readAMF3String(buffer);
-		} 
-	
-		//!implement explicit types
-	}
-	objects.push_back(result);
-	//cout << result.toString() << endl;
-	return result;
-	*/
-
-
-/*
-	Dictionary result;
-	cout << endl << endl <<  "readAMF3Object" << endl << "===============" << endl;
-	
-	//get reference...
-	uint32_t ref;
-	if(!readU29(buffer, ref)) {
-		result = (bool)false;
-		ofLogError("ofxamfserializer: readamf3 object error reading reference.");
-	}
-	
-	// check the kind of object we have (reference are "parented")
-	bool fetch_object_by_reference = ((ref & 0x01) == 0);
-	bool fetch_object_traits_by_reference = ((ref & 0x02) == 0);
-	bool is_externalizable = ((ref & 0x07) == 0x07);
-	bool is_dynamic = ((ref & 0x08) == 0x08); 
-	uint32_t sealed_member_count = ref >> 4;
-	Dictionary trait_definition = Dictionary();
-	
-
-	// already stored?
-	if(fetch_object_by_reference) {
-		cout << "Object ID:" << endl;
-		uint32_t dx_object = (ref >> 1);
-		cout << "dx: " << dx_object << endl;
-		ofLogError("return object by given reference");
-
-	}
-	
-	// externalizable object. this is custom serialized (and unknown data)
-	if(is_externalizable) { // bits: 1 1 1
-		Dictionary type_identifier = readAMF3String(buffer);
-		ofLogError("Externalizable objects are no yet implemented.");
-	}
-
-	// object traits are passed referenced.
-	if(fetch_object_traits_by_reference) {
-		ofLogError("need to implement traits by reference");
-		uint32_t dx_traits = ref >> 2;
-		bitset<29> bitset_ref(ref);
-		cout << bitset_ref << endl;
-		cout << "dx traits:" << dx_traits << endl;
-		trait_definition = traits[dx_traits];
-		cout << trait_definition.toString() << endl;
-	}
-	else {
-		Dictionary class_name = readAMF3String(buffer);
-		trait_definition[AMF3_TRAITS_DYNAMIC] = (bool)is_dynamic;
-		trait_definition[AMF3_TRAITS_CLASSNAME] = class_name;
-		traits.push_back(trait_definition);
-		cout << "class name:" << (string)class_name << endl;
-		// get sealed members.
-		for(uint32_t i = 0; i < sealed_member_count; ++i) {
-			ofLogError("ofxamfserializer: @todo read class sealed members");
-			// store sealed members!
-		}
-	}
-	
-	bool read_dynamic_properties;
-	if(fetch_object_traits_by_reference) {
-		// did the object have dynamic fields.
-		// @todo use "traits" member, trait[AMF3_TRAITS_DYNAMIC] to figure out if
-		// the referneced object has dynamic fields.
-		read_dynamic_properties = (bool)trait_definition[AMF3_TRAITS_DYNAMIC];
-		cout << "got traits from dynamic props" << endl;
-	}
-	else {	
-		read_dynamic_properties = is_dynamic;
-	}
-	
-	
-	// as3 object.
-	if(read_dynamic_properties) {
-		cout << "Read dynamic props" << endl;
-		Dictionary key = readAMF3String(buffer);
-		while ((string)key != "") {
-			Dictionary value = readAMF3Type(buffer);
-			result[(string)key] = value;
-			cout << "key = '" << (string)key <<  "' vlaue = " << (string)value << endl;
-			key = readAMF3String(buffer);
-		} 
-	
-		//!implement explicit types
-	}
-	objects.push_back(result);
-	return result;
-	
-	*/
-	
-	
-	/*
-	// inline or return by referenced object.
-	bool is_inline = ((ref & 0x01) != 0);
-	ref = ref >> 1;
-	Dictionary trait_definition = Dictionary();
-	if(is_inline) {
-		bool inline_class_def = ((ref & 0x01) != 0);
-		ref = ref >> 1;
-		
-		if(inline_class_def) {
-			Dictionary type_identifier = readAMF3String(buffer);
-			bool is_typed_obj = type_identifier != "";
-			bool is_externalizable = ((ref & 0x01) != 0);
-			ref = ref >> 1;
-			bool is_dynamic = ((ref & 0x01) != 0);
-			ref = ref >> 1;
-			uint32_t class_member_count = ref;
-			
-			//!implement
-			for(uint32_t i = 0; i < class_member_count; ++i) {
-				ofLogError("ofxamfserializer: @todo read class member names");
-				//trait_definition[AMF3_TRAITS][i] = ....
-			}
-			
-			trait_definition[AMF3_TRAITS_DYNAMIC] = (bool)is_dynamic;
-			trait_definition[AMF3_TRAITS_CLASSNAME] = type_identifier;
-			traits.push_back(trait_definition);
-			cout << "Traits def:" << (string)type_identifier << endl;
-			
-		}
-		else {	
-			// the traits are passed as reference.
-			//cout << "handle of traits: " << ref << endl;
-			//!implement
-			result = traits[ref];
-			//cout << (string)result << endl;
-			ofLogError("ofxamfserializer: @todo read amf3 object, handle inline class def");
-		}
-	}
-	else {
-		// not inline, we should retrieve by reference.
-		//!implement
-		ofLogError("ofxamfserializer: @todo handle object reference");
-	}
-	
-	string type_identifier = trait_definition[AMF3_TRAITS_CLASSNAME];
-	
-	//!implement AMF3_TRAITS members.
-	
-	
-	// as3 object.
-	if(trait_definition[AMF3_TRAITS_DYNAMIC]) {
-		Dictionary key = readAMF3String(buffer);
-		while (key != "") {
-			Dictionary value = readAMF3Type(buffer);
-			result[(string)key] = value;
-			key = readAMF3String(buffer);
-		} 
-	
-		//!implement explicit types
-	}
-	return result;
-	*/
-
 }
 
 
@@ -933,11 +737,14 @@ Dictionary ofxAMFSerializer::readAMF3Array(IOBuffer& buffer) {
 
 	// did we get an array reference	
 	if( (ref & 0x01) == 0) {
-		//!implement
-		ofLogError("ofxamfserializer: @todo handle array reference.");
+		result = objects[ref >> 1];
 		return result;
 	}
 	
+	// create and a empty result alreay. 
+	int curr_array_dx = objects.size();
+	objects.push_back(result);
+		
 	// read array
 	while(true) {
 		Dictionary key = readAMF3String(buffer);
@@ -957,6 +764,10 @@ Dictionary ofxAMFSerializer::readAMF3Array(IOBuffer& buffer) {
 		result[(uint32_t)i] = readAMF3Type(buffer);
 	}
 	result.isArray(true);
+	
+	// update the array.
+	objects[curr_array_dx] = result;
+	
 	return result;
 }
 
@@ -971,7 +782,6 @@ Dictionary ofxAMFSerializer::readAMF3String(IOBuffer& buffer) {
 	
 	// lsb == 0, get from reference table, lsb == 1, new string. (page 4, amf3 spec)
 	if( (ref & 0x01) == 0) {
-		// cout << "string ref: " <<(ref >> 1) << endl;
 		result = strings[ref >> 1];
 		return result;
 	}
@@ -984,7 +794,6 @@ Dictionary ofxAMFSerializer::readAMF3String(IOBuffer& buffer) {
 			result = buffer.consumeString(len);
 			strings.push_back(result); 
 		}
-
 	}
 	return result;
 }
@@ -998,7 +807,6 @@ bool ofxAMFSerializer::readUTF(IOBuffer& buffer, string& result) {
 	}
 	return false;
 }
-
 
 bool ofxAMFSerializer::readU29(IOBuffer& buffer, uint32_t& value) {
 	value = 0;
