@@ -1,7 +1,11 @@
 #pragma once
 
 #include "ofMain.h"
+
+#include "ofxLogger.h"
 #include "ofxAMFServer.h"
+#include "ofxAMFHTTPRequest.h"
+//#include "ofxAMFMessage.h"
 
 class testApp : public ofBaseApp{
 
@@ -19,9 +23,7 @@ class testApp : public ofBaseApp{
 		void windowResized(int w, int h);
 		void dragEvent(ofDragInfo dragInfo);
 		void gotMessage(ofMessage msg);
-		
-		// AMF
-		void onAMFEvent(ofxAMFEvent& ev);
-		ofxAMFServer amf_server;		
-		string last_amf_params; // just to show some output.
+		void onAMFevent(ofxAMFEvent& ev);
+		ofxLoggerDisplay display;
+		ofxAMFServer amf_server;
 };
