@@ -23,6 +23,7 @@ ofxAMFServer::~ofxAMFServer() {
 	}
 }
 
+// use * for host to start listening on all IP addresses
 void ofxAMFServer::setup(string host, int port) {
 	server_host = host;
 	server_port = port;
@@ -38,7 +39,15 @@ bool ofxAMFServer::start() {
 		ofLogError("ofxAMFServer already created");
 		return false;
 	}
-	address = new SocketAddress(server_host, server_port);
+	
+	if(server_host == "*") {	
+		IPAddress wildcard_address;
+		address = new SocketAddress(wildcard_address, server_port);
+	}
+	else {
+		address = new SocketAddress(server_host, server_port);		
+	}
+	
 	socket = new ServerSocket(*address);
 	reactor = new SocketReactor();
 	acceptor = new ofxAMFSocketAcceptor<ofxAMFConnection>(*socket, *reactor, this);

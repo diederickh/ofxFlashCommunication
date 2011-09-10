@@ -1,6 +1,21 @@
 #ifndef OFXAMFSERVERH
 #define OFXAMFSERVERH
 
+/*
+- we need a better documentation system which does not clutter the code ;-)
+
+ofxAMFServer.setup(string host, int port)
+==========================================
+Setup a new ofxAMFServer listening on host ip address and the given port. 
+You can pass * for the value of host which will create a server bound on all
+local IP addresses.
+
+@param	string	host		The IP on which we start listening. Pass * to 
+							listen on all IP addresses
+@param	int		port		The port on which the server will be started.
+
+*/
+
 #include "Poco/Thread.h"
 #include "Poco/Mutex.h"
 #include "Poco/Runnable.h"
@@ -30,6 +45,7 @@ using Poco::Net::StreamSocket;
 using Poco::Net::SocketAddress;
 using Poco::Net::SocketReactor;
 using Poco::Net::SocketAcceptor;
+using Poco::Net::IPAddress;
 using std::string;
 using std::vector;
 
@@ -43,6 +59,7 @@ class ofxAMFServer {
 public:
 	ofxAMFServer();
 	~ofxAMFServer();
+	void setup(int port); // listens on all IP addresses.
 	void setup(string host, int port);
 	void addPolicy(string domain, string port);
 	void removeClient(ofxAMFConnection* con);
