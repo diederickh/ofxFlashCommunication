@@ -82,10 +82,12 @@ void ofxAMFSerializer::writeAMF3Type(IOBuffer& buffer, Dictionary& input) {
 			writeAMF3Null(buffer, input);
 			break;
 		}
+		
 		case D_BYTEARRAY: {
 			writeAMF3ByteArray(buffer, input);
 			break;
 		}
+		
 		case D_BOOL: {
 			if((bool)input) {
 				writeAMF3True(buffer);
