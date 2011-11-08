@@ -16,7 +16,7 @@ ofxAMFConnection::ofxAMFConnection(
 ,start_body(0)
 ,bytes_waiting(UINT32_MAX)
 {
-	buffer.setup();
+	//buffer.setup();
 	amf_request_buffer.setup();
 	reactor.addEventHandler(socket, NObserver<ofxAMFConnection, ReadableNotification>(*this, &ofxAMFConnection::onReadable));
 	reactor.addEventHandler(socket, NObserver<ofxAMFConnection, ShutdownNotification>(*this, &ofxAMFConnection::onShutdown));

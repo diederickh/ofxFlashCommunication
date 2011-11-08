@@ -19,18 +19,18 @@ IOBuffer ofxAMFSerializer::serialize(ofxAMFPacket& packet) {
 	buffer.setup();
 	
 	// write: version
-	buffer.storeBigEndianUInt16(packet.getClientVersion());
+	buffer.storeBigEndianUI16(packet.getClientVersion());
 	
 	// write: headers
 	uint16_t header_count = packet.getNumHeaders();
-	buffer.storeBigEndianUInt16(header_count);
+	buffer.storeBigEndianUI16(header_count);
 	for(uint16_t i = 0; i < header_count; ++i) {
 		ofLogError("ofxamfserializer: : @todo: implement serializing of headers.");
 	}
 	
 	// write: message count
 	uint16_t message_count = packet.getNumMessages();
-	buffer.storeBigEndianUInt16(message_count);
+	buffer.storeBigEndianUI16(message_count);
 	
 
 	for(uint16_t i = 0; i < message_count; ++i) {
@@ -53,7 +53,7 @@ IOBuffer ofxAMFSerializer::serialize(ofxAMFPacket& packet) {
 
 					
 			// append size/array info
-			buffer.storeBigEndianUInt32(tmp_buffer.getNumBytesStored());
+			buffer.storeBigEndianUI32(tmp_buffer.getNumBytesStored());
 				
 			//! append the created AMF message
 			buffer.storeBuffer(tmp_buffer);
@@ -279,7 +279,7 @@ void ofxAMFSerializer::writeAMF3ByteArray(IOBuffer& buffer, Dictionary& source) 
 // -----------------------
 void ofxAMFSerializer::writeUTF(IOBuffer& buffer, string value) {
 	uint16_t length = (uint16_t)value.length();
-	buffer.storeBigEndianUInt16(length);
+	buffer.storeBigEndianUI16(length);
 	buffer.storeString(value);
 }
 
@@ -329,23 +329,23 @@ bool ofxAMFSerializer::writeU29(IOBuffer& buffer, uint32_t value) {
 	uint8_t* temp_ptr = (uint8_t*)&temp;
 
 	if ((0x00000000 <= value) && (value <= 0x0000007f)) {
-		buffer.storeUInt8(temp_ptr[3]);
+		buffer.storeUI8(temp_ptr[3]);
 		return true;
 	}
 	else if ((0x00000080 <= value) && (value <= 0x00003fff)) {
-		buffer.storeUInt8(((temp_ptr[2] << 1) | (temp_ptr[3] >> 7)) | 0x80);
-		buffer.storeUInt8(temp_ptr[3]&0x7f);
+		buffer.storeUI8(((temp_ptr[2] << 1) | (temp_ptr[3] >> 7)) | 0x80);
+		buffer.storeUI8(temp_ptr[3]&0x7f);
 		return true;
 	} else if ((0x00004000 <= value) && (value <= 0x001fffff)) {
-		buffer.storeUInt8(((temp_ptr[1] << 2) | (temp_ptr[2] >> 6)) | 0x80);
-		buffer.storeUInt8(((temp_ptr[2] << 1) | (temp_ptr[3] >> 7)) | 0x80);
-		buffer.storeUInt8(temp_ptr[3]&0x7f);
+		buffer.storeUI8(((temp_ptr[1] << 2) | (temp_ptr[2] >> 6)) | 0x80);
+		buffer.storeUI8(((temp_ptr[2] << 1) | (temp_ptr[3] >> 7)) | 0x80);
+		buffer.storeUI8(temp_ptr[3]&0x7f);
 		return true;
 	} else if ((0x0020000 <= value) && (value <= 0x01fffffff)) {
-		buffer.storeUInt8(((temp_ptr[0] << 2) | (temp_ptr[1] >> 6)) | 0x80);
-		buffer.storeUInt8(((temp_ptr[1] << 1) | (temp_ptr[2] >> 7)) | 0x80);
-		buffer.storeUInt8(temp_ptr[2] | 0x80);
-		buffer.storeUInt8(temp_ptr[3]);
+		buffer.storeUI8(((temp_ptr[0] << 2) | (temp_ptr[1] >> 6)) | 0x80);
+		buffer.storeUI8(((temp_ptr[1] << 1) | (temp_ptr[2] >> 7)) | 0x80);
+		buffer.storeUI8(temp_ptr[2] | 0x80);
+		buffer.storeUI8(temp_ptr[3]);
 		return true;
 	}
 	return false;
@@ -359,18 +359,18 @@ ofxAMFPacket ofxAMFSerializer::deserialize(IOBuffer& buffer) {
 	//buffer.printHex();
 	
 	// get version.
-	uint16_t version = buffer.consumeBigEndianUInt16();
+	uint16_t version = buffer.consumeBigEndianUI16();
 	packet.setClientVersion(version);
 	
 	// get headers count.
-	uint16_t header_count = buffer.consumeBigEndianUInt16();
+	uint16_t header_count = buffer.consumeBigEndianUI16();
 	
 	// parsing headers
 	for(uint16_t i = 0; i < header_count; ++i) {
 		ofLogError("@todo implement header parsing");
 	}
 	
-	uint16_t message_count = buffer.consumeBigEndianUInt16();
+	uint16_t message_count = buffer.consumeBigEndianUI16();
 	
 	string target_uri = "";
 	string response_uri = "";
@@ -385,10 +385,10 @@ ofxAMFPacket ofxAMFSerializer::deserialize(IOBuffer& buffer) {
 		message->setResponseURI(response_uri);
 		packet.addMessage(message);	
 		
-		uint32_t message_length = buffer.consumeBigEndianUInt32();
+		uint32_t message_length = buffer.consumeBigEndianUI32();
 		message->setMessageLength(message_length);
 		
-		uint8_t value_type = buffer.consumeUInt8();
+		uint8_t value_type = buffer.consumeUI8();
 		Dictionary result = readType(buffer, value_type);
 		
 		/*
@@ -479,7 +479,7 @@ Dictionary ofxAMFSerializer::readNumber(IOBuffer& buffer) {
 
 
 Dictionary ofxAMFSerializer::readAMF3Type(IOBuffer& buffer) {
-	uint8_t type = buffer.consumeUInt8();
+	uint8_t type = buffer.consumeUI8();
 	//printf("ofxamfserializer: read amf3 type: %02X\n", type);
 
 	Dictionary result;
@@ -632,10 +632,10 @@ Dictionary ofxAMFSerializer::readString(IOBuffer& buffer) {
 // Numeric keyed Actionscript Array
 Dictionary ofxAMFSerializer::readArray(IOBuffer& buffer) {
 	Dictionary result;
-	uint32_t num_els = buffer.consumeBigEndianUInt32();
+	uint32_t num_els = buffer.consumeBigEndianUI32();
 	
 	for(uint32_t i = 0; i < num_els; ++i) {
-		uint8_t type = buffer.consumeUInt8();
+		uint8_t type = buffer.consumeUI8();
 		Dictionary array_el = readType(buffer, type);
 		result.pushToArray(array_el);
 	}
@@ -802,7 +802,7 @@ Dictionary ofxAMFSerializer::readAMF3String(IOBuffer& buffer) {
 
 // Read next data as UTF string. (utf precedes with a 16bit length.)
 bool ofxAMFSerializer::readUTF(IOBuffer& buffer, string& result) {
-	uint16_t utf_length = buffer.consumeBigEndianUInt16();
+	uint16_t utf_length = buffer.consumeBigEndianUI16();
 	if(utf_length > 0) {
 		result = buffer.consumeString(utf_length);
 		return true;
@@ -813,7 +813,7 @@ bool ofxAMFSerializer::readUTF(IOBuffer& buffer, string& result) {
 bool ofxAMFSerializer::readU29(IOBuffer& buffer, uint32_t& value) {
 	value = 0;
 	for(uint32_t i = 0; i < 4; ++i) {
-		uint8_t byte = buffer.consumeUInt8();
+		uint8_t byte = buffer.consumeUI8();
 		if(i != 3) {
 			value = (value << 7) | (byte & 0x7f);
 		}
