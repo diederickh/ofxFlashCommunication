@@ -56,17 +56,22 @@ bool ofxAMFServer::start() {
 }
 
 void ofxAMFServer::addClient(ofxAMFConnection* con) {
+	mutex.lock();
 	clients.push_back(con);
+	mutex.unlock();
 }
 
 void ofxAMFServer::removeClient(ofxAMFConnection* con) {
+	mutex.lock();
 	vector<ofxAMFConnection*>::iterator it = std::find(clients.begin(), clients.end(), con);
 	if(it == clients.end()) {
 		ofLogError("Error while trying to remove a client; not found.");
+		mutex.unlock();
 		return;
 	}
 	ofLogNotice("Removed client");
 	clients.erase(it);
+	mutex.unlock();
 }
 
 void ofxAMFServer::notifyEvent(ofxAMFEvent& event) {

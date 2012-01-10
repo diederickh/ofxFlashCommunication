@@ -78,6 +78,7 @@ public:
 	}
 	
 private: 
+	Mutex mutex;
 	string server_host;
 	int server_port;
 	ServerSocket* socket;
